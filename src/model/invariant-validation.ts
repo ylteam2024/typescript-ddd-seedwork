@@ -103,7 +103,18 @@ export interface IValidate<T> {
 export type Liken<T> = {
   [K in keyof T]: T[K] extends string | number | boolean | Date
     ? unknown
+    : T[K] extends Option.Option<unknown>
+    ? Option.Option<unknown>
     : T[K] extends object
     ? Liken<T[K]>
     : never;
 };
+
+export const optionizeParser =
+  <T>(parser: Parser<T>) =>
+  (optionV: Option.Option<unknown>) =>
+    pipe(
+      optionV,
+      Option.map((v) => parser(v)),
+      Option.sequence(Either.Applicative),
+    );

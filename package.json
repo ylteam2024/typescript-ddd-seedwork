@@ -70,6 +70,7 @@
     "@types/node": "^18.7.14",
     "@types/ramda": "^0.28.23",
     "@types/uuid": "^8.3.4",
+    "@types/validator": "^13.11.2",
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
     "eslint": "^7.30.0",

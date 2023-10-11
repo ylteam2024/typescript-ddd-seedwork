@@ -3,20 +3,34 @@ import { toString } from 'ramda';
 export class BaseException extends Error {
   readonly code: string;
   readonly loc: string[];
+  readonly instruction: string[];
+  readonly messages: string[];
 
-  constructor(message: string, code: string, loc = []) {
-    super(message);
+  constructor(
+    message: string | string[],
+    code: string,
+    loc = [],
+    instruction = [],
+    delimiter = '__',
+  ) {
+    super(Array.isArray(message) ? message.join(delimiter) : message);
     this.code = code;
     this.loc = loc;
+    this.instruction = instruction;
+    this.messages = Array.isArray(message) ? message : [message];
   }
 }
 
-const construct = (message: string, code: string, loc: string[] = []) =>
-  new BaseException(message, code, loc);
+const construct = (
+  message: string | string[],
+  code: string,
+  loc: string[] = [],
+  instruction: string[] = [],
+) => new BaseException(message, code, loc, instruction);
 
 const getCode = (exception: BaseException) => exception.code;
 
-const getMessage = (exception: BaseException) => exception.message;
+const getMessage = (exception: BaseException) => exception.messages;
 
 const getLoc = (exception: BaseException) => exception.loc;
 

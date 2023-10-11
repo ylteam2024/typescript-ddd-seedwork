@@ -1,11 +1,10 @@
 import { BaseExceptionBhv } from '@logic/exception.base';
 import { Array, Either, pipe } from '@logic/fp';
-import { decodeWithValidationErr } from '@model/io-related-auxiliry-func';
-import { apply } from 'fp-ts/lib/function';
 import { NumberFromString } from 'io-ts-types';
 import { Parser } from '..';
 
 export * from './NoneEmptyString';
+export * from './Person';
 
 export const parseString = (v: unknown) => {
   return Either.fromPredicate(
@@ -26,14 +25,6 @@ export const parseNumber = (v: unknown) => {
       BaseExceptionBhv.construct('invalid number', 'INVALID_NUMBER'),
     ),
   );
-  return pipe(
-    decodeWithValidationErr<number>,
-    apply(NumberFromString),
-    apply({
-      message: 'Should be number',
-      code: 'INVALID_NUMBER',
-    }),
-  )(v);
 };
 
 export const parseArray =

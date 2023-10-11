@@ -331,12 +331,6 @@ export interface EntityTrait<E extends Entity<unknown>> {
   new: (params: unknown) => Validation<E>;
 }
 
-export type EntityLike<T> = {
-  id: string;
-  createdAt?: Date;
-  updatedAt?: Date;
-} & T;
-
 export const structParsingProps = <ET extends Entity<unknown>>(
   raw: ParsingInput<ET['props']>,
 ) => structSummarizerParsing<ET['props']>(raw);

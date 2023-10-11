@@ -1,4 +1,5 @@
 import { BaseExceptionBhv } from '@logic/exception.base';
+import { PathReporter } from 'io-ts/PathReporter';
 import { Array as A, Either, io, NEA, Option, pipe, Record } from '@logic/fp';
 import { flow } from 'fp-ts/lib/function';
 import { Mixed, Props } from 'io-ts';
@@ -41,7 +42,7 @@ export const makeLikeStruct =
 export function decodeWithValidationErr<T>(
   ioType: io.Type<T, unknown, unknown>,
 ) {
-  return (exOps: { message: string; code: string }) => {
+  return (exOps: { code: string }) => {
     return flow(
       ioType.decode,
       Either.mapLeft((e) =>
@@ -49,11 +50,11 @@ export function decodeWithValidationErr<T>(
           NEA.fromArray(
             pipe(
               e,
-              A.map((e) => {
-                return e;
-              }),
               A.map(() =>
-                BaseExceptionBhv.construct(exOps.message, exOps.code),
+                BaseExceptionBhv.construct(
+                  PathReporter.report(Either.left(e)),
+                  exOps.code,
+                ),
               ),
             ),
           ),

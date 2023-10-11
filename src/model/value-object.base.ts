@@ -7,6 +7,7 @@ import { Either, Eq, S } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 import { equals } from 'ramda';
 import {
+  Liken,
   Parser,
   ParsingInput,
   Validation,
@@ -41,6 +42,7 @@ const construct =
     );
   };
 
+export type VOLiken<T extends ValueObject<unknown>> = Liken<T['props']>;
 const getTag = <T>(vo: ValueObject<T>) => vo._tag;
 
 const unpack = <T>(vo: ValueObject<T>) => vo.props;
