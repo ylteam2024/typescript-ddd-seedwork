@@ -6,7 +6,12 @@
 import { Either, Eq, ReadonlyRecord, S } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 import { equals } from 'ramda';
-import { IValidate } from './invariant-validation';
+import {
+  IValidate,
+  Parser,
+  Validation,
+  ValidationWithKey,
+} from './invariant-validation';
 
 export type ValueObject<T> = {
   readonly props: T;
@@ -39,9 +44,14 @@ const getTag = <T>(vo: ValueObject<T>) => vo._tag;
 
 const unpack = <T>(vo: ValueObject<T>) => vo.props;
 
-export const ValueObjectTrait = {
+export const ValueObjectAuFn = {
   construct,
   isEqual,
   getTag,
   unpack,
 };
+
+export interface ValueObjectTrait<VO> {
+  parse: Parser<VO>;
+  new: (params: unknown) => ValidationWithKey<VO>;
+}

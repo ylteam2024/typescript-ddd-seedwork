@@ -13,7 +13,6 @@ import {
 import { apply, pipe } from 'fp-ts/lib/function';
 import { DomainEvent } from './event';
 import { BehaviorMonadTrait } from './domain-behavior.monad';
-import { isArray } from 'util';
 import { BaseExceptionBhv } from '@logic/exception.base';
 import { shouldBeArray } from '@logic/parser';
 

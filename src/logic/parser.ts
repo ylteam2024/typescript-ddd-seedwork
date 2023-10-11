@@ -4,10 +4,12 @@ import { Either, NEA, pipe } from './fp';
 import { isArray } from 'util';
 
 export interface BasicAssertParam {
-  aMessage?: string;
+  message?: string;
   exception?: BaseException;
   loc?: string[];
   code?: string;
+  isWithKey?: boolean;
+  key?: string;
 }
 
 export function constructException(
@@ -20,7 +22,7 @@ export function constructException(
 }
 export function assertArgumentNotEmpty({
   aString,
-  aMessage,
+  message: aMessage,
   exception,
   loc,
   code,
@@ -37,7 +39,7 @@ export function assertArgumentNotEmpty({
 
 export function assertArgumentNotNull({
   aValue,
-  aMessage,
+  message: aMessage,
   exception,
   loc,
   code,
@@ -53,7 +55,7 @@ export function assertArgumentNotNull({
 
 export function assertStateTrue({
   aBoolean,
-  aMessage,
+  message: aMessage,
   exception,
   loc,
   code,
@@ -69,7 +71,7 @@ export function assertStateTrue({
 
 export function assertStateFalse({
   aBoolean,
-  aMessage,
+  message: aMessage,
   exception,
   loc,
   code,
@@ -87,7 +89,7 @@ export function assertLargerThanOrEqual({
   aNumber,
   threshold,
   allowEqual = true,
-  aMessage,
+  message: aMessage,
   exception,
   loc,
   code,
