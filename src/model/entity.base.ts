@@ -1,5 +1,5 @@
 import { curry } from 'ramda';
-import { IValidate, Parser, Validation } from './invariant-validation';
+import { IValidate, Parser } from './invariant-validation';
 import {
   Array,
   Either,
@@ -151,7 +151,8 @@ const adder =
     const mustNotExist = (arr: A[]) =>
       Either.fromPredicate(
         (a: A) => !Array.elem(E)(a)(arr),
-        () => BaseExceptionBhv.construct('Item existed', 'ITEM_EXISTED'),
+        () =>
+          NEA.of(BaseExceptionBhv.construct('Item existed', 'ITEM_EXISTED')),
       );
     return pipe(
       shouldBeArray,
