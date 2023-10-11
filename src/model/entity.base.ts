@@ -15,6 +15,7 @@ import { DomainEvent } from './event';
 import { BehaviorMonadTrait } from './domain-behavior.monad';
 import { isArray } from 'util';
 import { BaseExceptionBhv } from '@logic/exception.base';
+import { shouldBeArray } from '@logic/parser';
 
 export type Identifier = string;
 
@@ -25,7 +26,8 @@ export interface EntityCommonProps {
   readonly _tag: string;
 }
 
-export interface Entity<T> extends EntityCommonProps {
+export interface Entity<T extends ReadonlyRecord.ReadonlyRecord<string, any>>
+  extends EntityCommonProps {
   readonly props: T;
 }
 
@@ -134,19 +136,6 @@ const adder =
   (entity: T) => {
     const lens = entityPropsLen<T>().at(attributeName);
     const getAttr = Optics.get(lens);
-    const shouldBeArray = pipe(
-      entity,
-      getAttr,
-      Either.fromPredicate(isArray, () =>
-        NEA.of(
-          BaseExceptionBhv.construct(
-            `property ${attributeName as string} should be an array`,
-            'PROP_NOT_ARRAY',
-          ),
-        ),
-      ),
-      Either.map((a) => a as A[]),
-    );
     const validating = () => pipe(validator, apply(entity), apply(newItem));
     const mustNotExist = (arr: A[]) =>
       Either.fromPredicate(
@@ -155,7 +144,12 @@ const adder =
           NEA.of(BaseExceptionBhv.construct('Item existed', 'ITEM_EXISTED')),
       );
     return pipe(
-      shouldBeArray,
+      entity,
+      getAttr,
+      shouldBeArray<A>({
+        message: `property ${attributeName as string} should be an array`,
+        code: 'PROP_NOT_ARRAY',
+      }),
       Either.bindTo('array'),
       Either.bind('item', validating),
       Either.tap(({ item, array }) =>
@@ -169,7 +163,77 @@ const adder =
               item,
             ] as T['props'][keyof T['props']])(entity),
           (e: Error) =>
-            BaseExceptionBhv.construct(e.message, 'ADDER_OPTICS_CHANGE_ERROR'),
+            NEA.of(
+              BaseExceptionBhv.construct(
+                e.message,
+                'ADDER_OPTICS_CHANGE_ERROR',
+              ),
+            ),
+        ),
+      ),
+      Either.map((updatedEntity) =>
+        BehaviorMonadTrait.of(updatedEntity, events),
+      ),
+    );
+  };
+
+const remover =
+  <T extends Entity<unknown>, A>(attributeName: keyof T['props']) =>
+  ({
+    E,
+    validator,
+    events,
+  }: {
+    E: Eq.Eq<A>;
+    validator: InvariantParser<T, false, A>;
+    events: DomainEvent[];
+  }) =>
+  (removedItem: A) =>
+  (entity: T) => {
+    const lens = entityPropsLen<T>().at(attributeName);
+    const getAttr = Optics.get(lens);
+    const validating = () => pipe(validator, apply(entity), apply(removedItem));
+    const mustExist = (arr: A[]) => (checkedItem: A) =>
+      pipe(
+        arr,
+        Array.findIndex((a) => E.equals(a, checkedItem)),
+        Either.fromOption(() =>
+          NEA.of(
+            BaseExceptionBhv.construct(
+              'Item does not existed',
+              'ITEM_NOT_EXISTED',
+            ),
+          ),
+        ),
+      );
+    return pipe(
+      entity,
+      getAttr,
+      shouldBeArray<A>({
+        message: `property ${attributeName as string} should be an array`,
+        code: 'PROP_NOT_ARRAY',
+      }),
+      Either.bindTo('array'),
+      Either.bind('item', validating),
+      Either.bind('idx', ({ item, array }) =>
+        pipe(mustExist, apply(array), apply(item)),
+      ),
+      Either.map(({ array, idx }) =>
+        pipe(Array.deleteAt, apply(idx), apply(array)),
+      ),
+      Either.flatMap((updatedArray) =>
+        Either.tryCatch(
+          () =>
+            Optics.replace(lens)(updatedArray as T['props'][keyof T['props']])(
+              entity,
+            ),
+          (e: Error) =>
+            NEA.of(
+              BaseExceptionBhv.construct(
+                e.message,
+                'ADDER_OPTICS_CHANGE_ERROR',
+              ),
+            ),
         ),
       ),
       Either.map((updatedEntity) =>
@@ -216,4 +280,5 @@ export const entityTrait = {
   simpleQueryOpt,
   propsLen: entityPropsLen,
   adder,
+  remover,
 };

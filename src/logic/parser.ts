@@ -1,6 +1,7 @@
 import { Validation } from '@model/invariant-validation';
 import { BaseException, BaseExceptionBhv } from './exception.base';
 import { Either, NEA, pipe } from './fp';
+import { isArray } from 'util';
 
 export interface BasicAssertParam {
   aMessage?: string;
@@ -105,3 +106,14 @@ export function assertLargerThanOrEqual({
     ),
   );
 }
+
+export const shouldBeArray =
+  <A>({ code, message }: { code: string; message: string }) =>
+  (v: unknown) =>
+    pipe(
+      v,
+      Either.fromPredicate(isArray, () =>
+        NEA.of(BaseExceptionBhv.construct(message, code)),
+      ),
+      Either.map((a) => a as A[]),
+    );

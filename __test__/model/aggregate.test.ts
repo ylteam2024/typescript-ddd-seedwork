@@ -144,6 +144,65 @@ describe('Test Aggregate', () => {
         ),
       );
     });
+    describe('test remover with primitives array', () => {
+      const remover = pipe(
+        entityTrait.remover<ExampleA, string>,
+        apply('attrArrayPrimitive' as keyof ExampleA['props']),
+        apply({
+          E: S.Eq,
+          validator: identityInvariantParser,
+          events: [
+            DomainEventTrait.construct({
+              aggregateId: pipe(
+                testAgg,
+                Either.map(entityTrait.id),
+                Either.getOrElse(() => 'unknown'),
+              ),
+              aggregateType: testAgg._tag,
+              name: 'REMOVE_ARRAY_PRIMITIVE',
+            }),
+          ],
+        }),
+      );
+      it('remove existing element', () => {
+        pipe(
+          testAgg,
+          // Either.tap((agg) => {
+          //   console.log('agg', agg);
+          //   return Either.right(null);
+          // }),
+          Either.flatMap((agg) => pipe(remover, apply('a'), apply(agg))),
+          Either.fold(
+            (e) => {
+              throw e;
+            },
+            (bMonad) => {
+              const [a, e] = bMonad([]);
+              expect(a.props.attrArrayPrimitive).not.toContain('a');
+              expect(e).toHaveLength(1);
+            },
+          ),
+        );
+      });
+      it('remove not existing element', () => {
+        pipe(
+          testAgg,
+          // Either.tap((agg) => {
+          //   console.log('agg', agg);
+          //   return Either.right(null);
+          // }),
+          Either.flatMap((agg) => pipe(remover, apply('aaa'), apply(agg))),
+          Either.fold(
+            (e) => {
+              expect(e).toHaveLength(1);
+            },
+            (bMonad) => {
+              fail();
+            },
+          ),
+        );
+      });
+    });
     it('test adder with domain model entity array', () => {
       pipe(
         testAgg,
