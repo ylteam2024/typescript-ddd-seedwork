@@ -89,10 +89,19 @@ export const decodeWithValidationErr = <T extends io.Props>(
   flow(
     ioType.decode,
     Either.mapLeft((e) =>
-      NEA.fromArray(
-        pipe(
-          e,
-          A.map((e) => BaseExceptionBhv.construct(e.message, String(e.value))),
+      pipe(
+        NEA.fromArray(
+          pipe(
+            e,
+            A.map((e) =>
+              BaseExceptionBhv.construct(e.message, String(e.value)),
+            ),
+          ),
+        ),
+        Option.getOrElse(() =>
+          NEA.of(
+            BaseExceptionBhv.construct('', 'EMPTY_EXCEPTION_FROM_IO_DECODE'),
+          ),
         ),
       ),
     ),
