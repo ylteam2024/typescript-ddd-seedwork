@@ -7,3 +7,4 @@ export * from './invariant-validation';
 export * from './domain-behavior.monad';
 export * from './event';
 export * from './value-objects';
+export * from './io-related-auxiliry-func';

@@ -1,8 +1,4 @@
-import {
-  EntityGenericTrait,
-  EntityLiken,
-  EntityTrait,
-} from '@model/entity.base';
+import { EntityLiken, EntityTrait } from '@model/entity.base';
 import { randomUUID } from 'crypto';
 import { apply } from 'fp-ts/lib/function';
 import {
@@ -23,28 +19,27 @@ type ExampleEntityProps = {
 
 type ExampleEntity = Entity<ExampleEntityProps>;
 
-const parseExampleEntityProps: Parser<
-  ExampleEntityProps,
-  EntityLiken<ExampleEntity>
-> = (state) =>
-  EntityGenericTrait.structParsingProps<ExampleEntity>({
-    attr1: parseString(state.attr1),
-    attr2: parseNumber(state.attr2),
-  });
-
-class ExampleEntityTrait implements EntityTrait<ExampleEntity> {
+class ExampleEntityTrait extends EntityTrait<ExampleEntity> {
   parse = (rawInput: EntityLiken<ExampleEntity>) =>
     pipe(
-      EntityGenericTrait.construct<ExampleEntity>,
+      this.construct,
       apply(parseExampleEntityProps),
       apply('exampleEntity'),
       apply(rawInput),
     );
-
   new = this.parse;
 }
 
 const exampleEntityTrait = new ExampleEntityTrait();
+
+const parseExampleEntityProps: Parser<
+  ExampleEntityProps,
+  EntityLiken<ExampleEntity>
+> = (state) =>
+  exampleEntityTrait.structParsingProps({
+    attr1: parseString(state.attr1),
+    attr2: parseNumber(state.attr2),
+  });
 
 function construct(attr1: string, attr2: number, id: string) {
   return exampleEntityTrait.parse({
@@ -66,8 +61,8 @@ describe('test entity', () => {
           fail('error on construct entity');
         },
         (v) => {
-          const attr1 = EntityGenericTrait.queryProps(v)('attr1') as string;
-          const attr2 = EntityGenericTrait.queryProps(v)('attr2') as number;
+          const attr1 = exampleEntityTrait.simpleQuery<string>('attr1')(v);
+          const attr2 = exampleEntityTrait.simpleQuery<number>('attr2')(v);
           expect(attr1).toEqual('attr1');
           expect(attr2).toEqual(3);
         },
@@ -86,8 +81,8 @@ describe('test entity', () => {
           throw e;
         },
         ([e1, e2, e3]) => {
-          expect(EntityGenericTrait.isEqual(e1, e2)).toBeTruthy();
-          expect(EntityGenericTrait.isEqual(e2, e3)).toBeFalsy();
+          expect(exampleEntityTrait.isEqual(e1, e2)).toBeTruthy();
+          expect(exampleEntityTrait.isEqual(e2, e3)).toBeFalsy();
         },
       ),
     );

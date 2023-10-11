@@ -1,4 +1,3 @@
-import { curry } from 'ramda';
 import {
   Liken,
   Parser,
@@ -24,7 +23,9 @@ import { BehaviorMonadTrait } from './domain-behavior.monad';
 import { BaseExceptionBhv } from '@logic/exception.base';
 import { shouldBeArray } from '@logic/parser';
 import { Brand } from '@type_util/index';
-import { ValueObjectTrait } from './value-object.base';
+import { PrimitiveVOTrait } from './value-object.base';
+import { DomainModel, DomainModelTrait } from './domain-model.base';
+import { FirstArgumentType } from '@type_util/function';
 
 export type Identifier = Brand<string, 'Identifier'>;
 
@@ -36,22 +37,20 @@ export const parseId: Parser<Identifier> = (v: unknown) => {
   )(v);
 };
 
-export const IdentifierTrait: ValueObjectTrait<Identifier> = {
+export const IdentifierTrait: PrimitiveVOTrait<Identifier> = {
   parse: parseId,
   new: parseId,
 };
 
-export interface EntityCommonProps {
+export interface Entity<T extends ReadonlyRecord.ReadonlyRecord<string, any>>
+  extends DomainModel<T> {
+  readonly props: T;
   readonly id: Identifier;
   readonly createdAt: Date;
   readonly updatedAt: Option.Option<Date>;
-  readonly _tag: string;
 }
 
-export interface Entity<T extends ReadonlyRecord.ReadonlyRecord<string, any>>
-  extends EntityCommonProps {
-  readonly props: T;
-}
+type EntityCommonProps = Omit<Entity<unknown>, 'props'>;
 
 export type EntityLiken<T extends Entity<unknown>> = Liken<
   Omit<EntityCommonProps, '_tag'>
@@ -106,47 +105,37 @@ const construct =
     );
   };
 
-const idLens = <T>() => Optics.id<Entity<T>>().at('id');
+const idLens = <T extends Entity<unknown>>() => Optics.id<T>().at('id');
 
-const id = <T>(state: Entity<T>) => pipe(state, Optics.get(idLens<T>()));
+const id = <T extends Entity<unknown>>(state: T) =>
+  pipe(state, Optics.get(idLens<T>()));
 
-const setId = curry(<T>(id: Identifier, state: Entity<T>) => {
-  return pipe(state, Optics.replace(idLens<T>())(id));
-});
+const setId =
+  <T extends Entity<unknown>>(id: Identifier) =>
+  (state: T) => {
+    return pipe(state, Optics.replace(idLens<T>())(id));
+  };
 
-const entityMetaLens = <T>(key: keyof EntityCommonProps) =>
-  Optics.id<Entity<T>>().at(key);
+const entityMetaLens = <T extends Entity<unknown>>(
+  key: keyof EntityCommonProps,
+) => Optics.id<T>().at(key);
 
 const entityPropsLen = <A extends Entity<unknown>>() =>
   Optics.id<A>().at('props') as Optics.Lens<A, A['props']>;
 
-const createdAt = <T>(state: Entity<T>) =>
+const createdAt = <T extends Entity<unknown>>(state: T) =>
   pipe(state, Optics.get(entityMetaLens('createdAt'))) as Date;
 
-const updatedAt = <T>(state: Entity<T>) =>
+const updatedAt = <T extends Entity<unknown>>(state: T) =>
   pipe(state, Optics.get(entityMetaLens('updatedAt')));
 
-const markUpdate = <T>(state: Entity<T>) =>
+const markUpdate = <T extends Entity<unknown>>(state: T) =>
   pipe(state, Optics.replace(entityMetaLens('updatedAt'))(new Date()));
 
-const queryProps =
-  <A extends Entity<unknown>>(state: A) =>
-  (propKey: keyof A['props']) => {
-    return pipe(state, Optics.get(entityPropsLen<A>().at(propKey)));
-  };
-
-export type Query<T, A> = (entity: T) => A;
-export type QueryOpt<T, A> = (entity: T) => Option.Option<A>;
-
-const simpleQuery =
-  <T extends Entity<unknown>, R>(key: keyof T['props']) =>
-  (entity: T) =>
-    queryProps(entity)(key) as R;
-
-const simpleQueryOpt =
-  <T extends Entity<unknown>, R>(key: keyof T['props']) =>
-  (entity: T) =>
-    Option.fromNullable(queryProps(entity)(key) as R);
+export type Query<T extends Entity<unknown>, A> = (entity: T) => A;
+export type QueryOpt<T extends Entity<unknown>, A> = (
+  entity: T,
+) => Option.Option<A>;
 
 export type InvariantParser<
   T extends Entity<unknown>,
@@ -181,7 +170,7 @@ const setter =
   };
 
 const adder =
-  <T extends Entity<any>, A>(attributeName: keyof T['props']) =>
+  <T extends Entity<unknown>, A>(attributeName: keyof T['props']) =>
   ({
     E,
     validator,
@@ -326,30 +315,46 @@ const getSnapshot = <T>(state: Entity<T>) =>
     ...state.props,
   });
 
-export interface EntityTrait<E extends Entity<unknown>> {
-  parse: Parser<E, EntityLiken<E>>;
-  new: (params: unknown) => Validation<E>;
+export abstract class EntityTrait<
+  E extends Entity<unknown>,
+> extends DomainModelTrait<E> {
+  abstract parse: Parser<E>;
+  abstract new: (params: unknown) => Validation<E>;
+  construct = construct<E>;
+  id = id<E>;
+  setId = setId<E>;
+  createdAt = createdAt<E>;
+  updatedAt = updatedAt<E>;
+  markUpdate = markUpdate<E>;
+  getSnapshot = getSnapshot<E>;
+  isEqual = isEqual<E>;
+  remover = <V>(a: FirstArgumentType<typeof remover<E, V>>) => remover<E, V>(a);
+  adder = <V>(a: FirstArgumentType<typeof adder<E, V>>) => adder<E, V>(a);
+  setter = <V extends E['props'][keyof E['props']]>(
+    a: FirstArgumentType<typeof setter<E, V>>,
+  ) => setter<E, V>(a);
+  propsLen = entityPropsLen<E>;
+  structParsingProps = structParsingProps<E>;
 }
 
 export const structParsingProps = <ET extends Entity<unknown>>(
   raw: ParsingInput<ET['props']>,
 ) => structSummarizerParsing<ET['props']>(raw);
 
-export const EntityGenericTrait = {
-  construct,
-  id,
-  setId,
-  createdAt,
-  updatedAt,
-  markUpdate,
-  getSnapshot,
-  isEqual,
-  queryProps,
-  simpleQuery,
-  setter,
-  simpleQueryOpt,
-  propsLen: entityPropsLen,
-  adder,
-  remover,
-  structParsingProps,
-};
+export const getGenericTrait = <E extends Entity<unknown>>() => ({
+  construct: construct<E>,
+  id: id<E>,
+  setId: setId<E>,
+  createdAt: createdAt<E>,
+  updatedAt: updatedAt<E>,
+  markUpdate: markUpdate<E>,
+  getSnapshot: getSnapshot<E>,
+  isEqual: isEqual<E>,
+  remover: <V>(a: FirstArgumentType<typeof remover<E, V>>) => remover<E, V>(a),
+  adder: <V>(a: FirstArgumentType<typeof adder<E, V>>) => adder<E, V>(a),
+  setter: <V extends E['props'][keyof E['props']]>(
+    a: FirstArgumentType<typeof setter<E, V>>,
+  ) => setter<E, V>(a),
+  propsLen: entityPropsLen<E>,
+  structParsingProps: structParsingProps<E>,
+});

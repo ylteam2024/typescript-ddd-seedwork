@@ -13,11 +13,9 @@ import {
   Validation,
   structSummarizerParsing,
 } from './invariant-validation';
+import { DomainModel } from './domain-model.base';
 
-export type ValueObject<T> = {
-  readonly props: T;
-  readonly _tag: string;
-};
+export interface ValueObject<T> extends DomainModel<T> {}
 
 const voEqual = Eq.struct({
   _tag: S.Eq,
@@ -52,23 +50,31 @@ export type VOLiken<T extends ValueObject<unknown>> = {
     : Liken<T['props'][K]>;
 };
 
-const getTag = <T>(vo: ValueObject<T>) => vo._tag;
-
-const unpack = <T>(vo: ValueObject<T>) => vo.props;
-
-export const structParsing = <ET extends ValueObject<unknown>>(
+const structParsing = <ET extends ValueObject<unknown>>(
   raw: ParsingInput<ET['props']>,
 ) => structSummarizerParsing<ET['props']>(raw);
 
 export const ValueObjectAuFn = {
   construct,
   isEqual,
-  getTag,
-  unpack,
   structParsing,
 };
 
-export interface ValueObjectTrait<VO> {
+export abstract class ValueObjectTrait<VO extends ValueObject<unknown>> {
+  abstract parse: Parser<VO>;
+  abstract new: (params: unknown) => Validation<VO>;
+  construct = construct<VO>;
+  isEqual = isEqual<VO>;
+  structParsing = structParsing<VO>;
+}
+
+export interface PrimitiveVOTrait<VO> {
   parse: Parser<VO>;
   new: (params: unknown) => Validation<VO>;
 }
+
+export const getVOGenricTrait = <VO extends ValueObject<unknown>>() => ({
+  construct: construct<VO>,
+  isEqual: isEqual<VO>,
+  structParsing: structParsing<VO>,
+});

@@ -1,6 +1,6 @@
 import { BaseExceptionBhv } from '@logic/exception.base';
 import { Either, NEA, flow } from '@logic/fp';
-import { ValueObjectTrait } from '@model/value-object.base';
+import { PrimitiveVOTrait } from '@model/value-object.base';
 
 export const isEmptyStringMaxNLength =
   <T>(maxLength: number) =>
@@ -8,7 +8,7 @@ export const isEmptyStringMaxNLength =
     return typeof v === 'string' && v.length > 0 && v.length <= maxLength;
   };
 
-interface NonEmptyStringVOTrait<T> extends ValueObjectTrait<T> {}
+interface NonEmptyStringVOTrait<T> extends PrimitiveVOTrait<T> {}
 
 export function getTrait<T>({
   max,

@@ -21,7 +21,7 @@ import {
 } from '@logic/exception.base';
 import { identity } from 'ramda';
 import { AggregateRoot } from '@model/aggregate-root.base';
-import { EntityGenericTrait, Identifier } from '@model/entity.base';
+import { getGenericTrait, Identifier } from '@model/entity.base';
 
 export type WhereCondition<OrmEntity> =
   | FindOptionsWhere<OrmEntity>[]
@@ -34,6 +34,7 @@ export abstract class TypeormRepositoryBase<
   OrmEntity extends TypeormEntityBase<string>,
 > implements RepositoryPort<Entity>
 {
+  entityTrait = getGenericTrait<Entity>();
   protected constructor(
     protected readonly repository: Repository<OrmEntity>,
     protected readonly mapper: OrmMapper<Identifier, Entity, OrmEntity>,
@@ -59,9 +60,9 @@ export abstract class TypeormRepositoryBase<
       TE.flatMap(TE.tryCatchK(this.repository.save, identity)),
       TE.tapIO(() =>
         this.logger.debug(
-          `[${entity.constructor.name}] persisted ${EntityGenericTrait.id(
-            entity,
-          ).toString()}`,
+          `[${entity.constructor.name}] persisted ${this.entityTrait
+            .id(entity)
+            .toString()}`,
         ),
       ),
       TE.chain(this.mapper.toDomainEntity),
@@ -199,9 +200,7 @@ export abstract class TypeormRepositoryBase<
       TE.flatMap(TE.tryCatchK(this.repository.remove, identity)),
       TE.tapIO(() =>
         this.logger.debug(
-          `[${entity.constructor.name}] deleted ${EntityGenericTrait.id(
-            entity,
-          )}`,
+          `[${entity.constructor.name}] deleted ${this.entityTrait.id(entity)}`,
         ),
       ),
       TE.mapError(unknownErrToBaseException),

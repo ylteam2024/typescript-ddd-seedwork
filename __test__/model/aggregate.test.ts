@@ -12,7 +12,6 @@ import {
   Identifier,
   Optics,
   Option,
-  EntityGenericTrait,
   identityInvariantParser,
   pipe,
   EntityTrait,
@@ -21,31 +20,25 @@ import {
   parseNumber,
   parseArray,
 } from 'src';
-import {
-  AggregateGenericTrait,
-  AggregateLiken,
-  AggregateTrait,
-} from '@model/aggregate-root.base';
+import { AggregateLiken, AggregateTrait } from '@model/aggregate-root.base';
 import { omit } from 'ramda';
 
 type ExampleEntity = Entity<{ a: string }>;
 
-const parseExampleEntityProps = (v: EntityLiken<ExampleEntity>) =>
-  EntityGenericTrait.structParsingProps<ExampleEntity>({
-    a: Either.right(String(v.a)),
-  });
-
-const parseExampleEntity = (v: EntityLiken<ExampleEntity>) =>
-  EntityGenericTrait.construct<ExampleEntity>(parseExampleEntityProps)(
-    'exampleEntity',
-  )(v);
-
-class ExampleEntityTrait implements EntityTrait<ExampleEntity> {
+class ExampleEntityTrait extends EntityTrait<ExampleEntity> {
   parse = parseExampleEntity;
   new = parseExampleEntity;
 }
 
 const exampleEntityTrait = new ExampleEntityTrait();
+
+const parseExampleEntityProps = (v: EntityLiken<ExampleEntity>) =>
+  exampleEntityTrait.structParsingProps({
+    a: Either.right(String(v.a)),
+  });
+
+const parseExampleEntity = (v: EntityLiken<ExampleEntity>) =>
+  exampleEntityTrait.construct(parseExampleEntityProps)('exampleEntity')(v);
 
 const constructExampleEntityProps = (id: string) => ({
   id,
@@ -64,7 +57,7 @@ type ExampleAProps = {
 type ExampleA = AggregateRoot<ExampleAProps>;
 
 const parseExampleAProps = (v: AggregateLiken<ExampleA>) =>
-  AggregateGenericTrait.structParsingProps<ExampleA>({
+  exampleATrait.structParsingProps({
     attr1: parseString(v.attr1),
     attr2: parseNumber(v.attr2),
     attrArrayPrimitive: pipe(
@@ -79,9 +72,9 @@ const parseExampleAProps = (v: AggregateLiken<ExampleA>) =>
     ),
   });
 const parseExample = (v: AggregateLiken<ExampleA>) =>
-  AggregateGenericTrait.construct<ExampleA>(parseExampleAProps)('exampleA')(v);
+  exampleATrait.construct(parseExampleAProps)('exampleA')(v);
 
-class ExampleATrait implements AggregateTrait<ExampleA> {
+class ExampleATrait extends AggregateTrait<ExampleA> {
   parse = parseExample;
   new = parseExample;
 }
@@ -109,7 +102,7 @@ describe('Test Aggregate', () => {
   it('test behavior', () => {
     const events = (a: ExampleA) => [
       DomainEventTrait.construct({
-        aggregateId: EntityGenericTrait.id(a),
+        aggregateId: exampleATrait.id(a),
         aggregateType: 'exampleA',
         name: 'EVENT_1',
       }),
@@ -118,9 +111,7 @@ describe('Test Aggregate', () => {
       () => (a: ExampleA) => {
         return pipe(
           a,
-          Optics.replace(EntityGenericTrait.propsLen<ExampleA>().at('attr1'))(
-            'attr1_updated',
-          ),
+          Optics.replace(exampleATrait.propsLen().at('attr1'))('attr1_updated'),
           (updatedA: ExampleA) => BehaviorMonadTrait.of(updatedA, events(a)),
         );
       };
@@ -160,14 +151,14 @@ describe('Test Aggregate', () => {
         testAgg,
         Either.flatMap((agg) =>
           pipe(
-            EntityGenericTrait.adder<ExampleA, string>,
+            exampleATrait.adder<string>,
             apply('attrArrayPrimitive' as keyof ExampleA['props']),
             apply({
               E: S.Eq,
               validator: identityInvariantParser,
               events: [
                 DomainEventTrait.construct({
-                  aggregateId: EntityGenericTrait.id(agg),
+                  aggregateId: exampleATrait.id(agg),
                   aggregateType: testAgg._tag,
                   name: 'ADD_ARRAY_PRIMITIVE',
                 }),
@@ -191,7 +182,7 @@ describe('Test Aggregate', () => {
     });
     describe('test remover with primitives array', () => {
       const remover = pipe(
-        EntityGenericTrait.remover<ExampleA, string>,
+        exampleATrait.remover<string>,
         apply('attrArrayPrimitive' as keyof ExampleA['props']),
         apply({
           E: S.Eq,
@@ -200,7 +191,7 @@ describe('Test Aggregate', () => {
             DomainEventTrait.construct({
               aggregateId: pipe(
                 testAgg,
-                Either.map(EntityGenericTrait.id),
+                Either.map(exampleATrait.id),
                 Either.getOrElse(() => 'unknown' as Identifier),
               ),
               aggregateType: testAgg._tag,
@@ -250,14 +241,14 @@ describe('Test Aggregate', () => {
         Either.flatMap(({ agg, newEntity }) =>
           pipe(
             pipe(
-              EntityGenericTrait.adder<ExampleA, ExampleEntity>,
+              exampleATrait.adder<ExampleEntity>,
               apply('attrArrayEntities' as keyof ExampleA['props']),
               apply({
                 E: EntityEq,
                 validator: identityInvariantParser,
                 events: [
                   DomainEventTrait.construct({
-                    aggregateId: EntityGenericTrait.id(agg),
+                    aggregateId: exampleATrait.id(agg),
                     aggregateType: agg._tag,
                     name: 'ADD_ARRAY_ENTITY',
                   }),
