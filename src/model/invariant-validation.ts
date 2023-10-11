@@ -1,8 +1,17 @@
-import { BaseException } from '@logic/exception.base';
-import { Apply, Either, NEA, Option, pipe, Record } from '@logic/fp';
+import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import {
+  Apply,
+  Array as A,
+  Either,
+  io,
+  NEA,
+  Option,
+  pipe,
+  Record,
+} from '@logic/fp';
 import { Magma } from 'fp-ts/lib/Magma';
 import { Semigroup } from 'fp-ts/lib/Semigroup';
-import { apply } from 'fp-ts/lib/function';
+import { apply, flow } from 'fp-ts/lib/function';
 import { match, P } from 'ts-pattern';
 import { isObject } from 'util';
 
@@ -52,16 +61,42 @@ export const getValidationErrByKeySemigroup: (
   },
 });
 
-export const structSummarizerValidating = (key: string) =>
-  Apply.sequenceS(
-    Either.getApplicativeValidation(getValidationErrByKeySemigroup(key)),
-  );
+export const structSummarizerValidating =
+  <T>(key: string) =>
+  (struct: Record<string, Validation<unknown>>) => {
+    const recordWithKeyValidation = Record.mapWithIndex(
+      (k: string, a: Validation<unknown>) =>
+        pipe(a, toValidationErr(Option.some(k))),
+    )(struct);
+    const structValidate = Apply.sequenceS(
+      Either.getApplicativeValidation(getValidationErrByKeySemigroup(key)),
+    );
+    return structValidate(recordWithKeyValidation) as Either.Either<
+      ValidationErrByKey,
+      T
+    >;
+  };
 
 export type Validation<A> = Either.Either<ValidationErr, A>;
 export type ValidationWithKey<A> = Either.Either<ValidationErrByKey, A>;
 
 export const toValidationErr = (key: Option.Option<string>) =>
   Either.mapLeft((e: ValidationErr) => [key, e] as ValidationErrByKey);
+
+export const decodeWithValidationErr = <T extends io.Props>(
+  ioType: io.ExactC<io.TypeC<T>> | io.TypeC<T>,
+) =>
+  flow(
+    ioType.decode,
+    Either.mapLeft((e) =>
+      NEA.fromArray(
+        pipe(
+          e,
+          A.map((e) => BaseExceptionBhv.construct(e.message, String(e.value))),
+        ),
+      ),
+    ),
+  );
 
 export type Parser<A> = (value: unknown) => Validation<A>;
 
