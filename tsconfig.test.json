@@ -33,8 +33,7 @@
     "resolveJsonModule": true,
     "types": [
       "node",
-      "jest",
-      // "reflect-metadata"
+      "jest"
     ],
     "typeRoots": [
       "./node_modules/@types",
