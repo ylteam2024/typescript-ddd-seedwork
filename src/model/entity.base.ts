@@ -28,7 +28,7 @@ import { ValueObjectTrait } from './value-object.base';
 
 export type Identifier = Brand<string, 'Identifier'>;
 
-export const parseId = (v: unknown) => {
+export const parseId: Parser<Identifier> = (v: unknown) => {
   const isId = (v: unknown): v is Identifier =>
     typeof v === 'string' && v.length > 0;
   return Either.fromPredicate(isId, () =>

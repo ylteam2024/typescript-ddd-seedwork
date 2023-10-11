@@ -2,11 +2,11 @@ import { BaseExceptionBhv } from '@logic/exception.base';
 import { Either } from '@logic/fp';
 import { Brand } from '@type_util/index';
 import validator from 'validator';
+import { Parser } from '..';
 
 export type Username = Brand<string, 'Username'>;
 
 export const parseUsernameFromStr =
-  (v: unknown) =>
   ({
     excMessage,
     instructions,
@@ -19,7 +19,8 @@ export const parseUsernameFromStr =
     instructions?: string[];
     minLength?: number;
     maxLength?: number;
-  }) =>
+  }): Parser<Username> =>
+  (v: unknown) =>
     Either.fromPredicate(
       (v): v is Username =>
         typeof v === 'string' &&
@@ -44,8 +45,14 @@ export const parseUsernameFromStr =
 export type FirstLastName = Brand<string, 'FirstLastName'>;
 
 export const parseFirstLastName =
+  ({
+    excMessage,
+    code,
+  }: {
+    excMessage?: string;
+    code?: string;
+  }): Parser<FirstLastName> =>
   (v: unknown) =>
-  ({ excMessage, code }: { excMessage?: string; code?: string }) =>
     Either.fromPredicate(
       (v): v is FirstLastName =>
         typeof v === 'string' &&
@@ -62,8 +69,14 @@ export const parseFirstLastName =
 export type Email = Brand<string, 'Email'>;
 
 export const parseEmailFromStr =
+  ({
+    excMessage,
+    code,
+  }: {
+    excMessage?: string;
+    code?: string;
+  }): Parser<Email> =>
   (v: unknown) =>
-  ({ excMessage, code }: { excMessage?: string; code?: string }) =>
     Either.fromPredicate(
       (v): v is Email => typeof v === 'string' && validator.isEmail(v),
       () =>
@@ -76,9 +89,10 @@ export const parseEmailFromStr =
 export type VNPhoneNumber = Brand<string, 'VNPhoneNumber'>;
 export type PhoneNumber = Brand<string, 'PhoneNumber'>;
 
+export type PhoneLocales = validator.MobilePhoneLocale;
+
 export const parseLocalePhoneNumber =
-  <T>(v: unknown) =>
-  ({
+  <T>({
     excMessage,
     code,
     locale,
@@ -86,7 +100,8 @@ export const parseLocalePhoneNumber =
     excMessage?: string;
     code?: string;
     locale: validator.MobilePhoneLocale;
-  }) =>
+  }): Parser<T> =>
+  (v: unknown) =>
     Either.fromPredicate(
       (v): v is T =>
         typeof v === 'string' && validator.isMobilePhone(v, [locale]),
@@ -98,8 +113,14 @@ export const parseLocalePhoneNumber =
     )(v);
 
 export const parsePhoneNumber =
+  ({
+    excMessage,
+    code,
+  }: {
+    excMessage?: string;
+    code?: string;
+  }): Parser<PhoneNumber> =>
   (v: unknown) =>
-  ({ excMessage, code }: { excMessage?: string; code?: string }) =>
     Either.fromPredicate(
       (v): v is PhoneNumber =>
         typeof v === 'string' && validator.isMobilePhone(v),

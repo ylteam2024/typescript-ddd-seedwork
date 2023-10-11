@@ -100,15 +100,19 @@ export interface IValidate<T> {
   (state: T): StructValidation<T>;
 }
 
-export type Liken<T> = {
-  [K in keyof T]: T[K] extends string | number | boolean | Date
-    ? unknown
-    : T[K] extends Option.Option<unknown>
-    ? Option.Option<unknown>
-    : T[K] extends object
-    ? Liken<T[K]>
-    : never;
-};
+type Prim = string | number | boolean | Date | Option.Option<unknown>;
+
+type PrimLiken<T extends Prim> = T extends Option.Option<unknown>
+  ? Option.Option<unknown>
+  : unknown;
+
+export type Liken<T> = T extends Prim
+  ? PrimLiken<T>
+  : T extends Record<string | number | symbol, unknown> | Array<unknown>
+  ? {
+      [K in keyof T]: Liken<T[K]>;
+    }
+  : never;
 
 export const optionizeParser =
   <T>(parser: Parser<T>) =>

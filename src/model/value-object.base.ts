@@ -42,7 +42,16 @@ const construct =
     );
   };
 
-export type VOLiken<T extends ValueObject<unknown>> = Liken<T['props']>;
+export type VOLiken<T extends ValueObject<unknown>> = {
+  [K in keyof T['props']]: T['props'][K] extends ValueObject<unknown>
+    ? VOLiken<T['props'][K]>
+    : T['props'][K] extends Array<unknown> & {
+        [key: number]: ValueObject<unknown>;
+      }
+    ? VOLiken<T['props'][K][0]>[]
+    : Liken<T['props'][K]>;
+};
+
 const getTag = <T>(vo: ValueObject<T>) => vo._tag;
 
 const unpack = <T>(vo: ValueObject<T>) => vo.props;
