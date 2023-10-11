@@ -106,13 +106,21 @@ type PrimLiken<T extends Prim> = T extends Option.Option<unknown>
   ? Option.Option<unknown>
   : unknown;
 
-export type Liken<T> = T extends Prim
+export type Liken<T> = T extends {
+  likenType: infer U;
+}
+  ? U
+  : T extends Prim
   ? PrimLiken<T>
   : T extends Record<string | number | symbol, unknown> | Array<unknown>
   ? {
       [K in keyof T]: Liken<T[K]>;
     }
   : never;
+
+export type CustomLiken<T, L> = T & {
+  likenType: L;
+};
 
 export const optionizeParser =
   <T>(parser: Parser<T>) =>

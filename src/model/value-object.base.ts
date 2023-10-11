@@ -40,15 +40,19 @@ const construct =
     );
   };
 
-export type VOLiken<T extends ValueObject<unknown>> = {
-  [K in keyof T['props']]: T['props'][K] extends ValueObject<unknown>
-    ? VOLiken<T['props'][K]>
-    : T['props'][K] extends Array<unknown> & {
-        [key: number]: ValueObject<unknown>;
-      }
-    ? VOLiken<T['props'][K][0]>[]
-    : Liken<T['props'][K]>;
-};
+export type VOLiken<T extends ValueObject<unknown>> = T extends {
+  likenType: infer U;
+}
+  ? U
+  : {
+      [K in keyof T['props']]: T['props'][K] extends ValueObject<unknown>
+        ? VOLiken<T['props'][K]>
+        : T['props'][K] extends Array<unknown> & {
+            [key: number]: ValueObject<unknown>;
+          }
+        ? VOLiken<T['props'][K][0]>[]
+        : Liken<T['props'][K]>;
+    };
 
 const structParsing = <ET extends ValueObject<unknown>>(
   raw: ParsingInput<ET['props']>,
