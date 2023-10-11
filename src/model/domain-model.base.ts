@@ -21,9 +21,9 @@ const simpleQueryOpt =
   (entity: T) =>
     pipe(entity, Optics.get(modelPropsLen<T>().at(key))) as Option.Option<R>;
 
-const getTag = <T>(m: DomainModel<T>) => m._tag;
+const getTag = <T extends DomainModel>(m: T) => m._tag;
 
-const unpack = <T>(m: DomainModel<T>) => m.props;
+const unpack = <T extends DomainModel>(m: T): T['props'] => m.props;
 
 export class DomainModelTrait<T extends DomainModel> {
   simpleQuery = <R>(a: FirstArgumentType<typeof simpleQuery<T, R>>) =>

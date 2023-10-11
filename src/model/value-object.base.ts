@@ -17,15 +17,16 @@ import { DomainModel, DomainModelTrait } from './domain-model.base';
 
 export interface ValueObject<T = unknown> extends DomainModel<T> {}
 
-const voEqual = Eq.struct({
-  _tag: S.Eq,
-  props: {
-    equals: (p1, p2) => equals(p1, p2),
-  },
-});
+export const getVoEqual = <VO extends ValueObject>() =>
+  Eq.struct({
+    _tag: S.Eq,
+    props: {
+      equals: (p1, p2) => equals(p1, p2),
+    },
+  }) as Eq.Eq<VO>;
 
-const isEqual = <T>(v1: ValueObject<T>, v2: ValueObject<T>) =>
-  voEqual.equals(v1, v2);
+const isEqual = <VO extends ValueObject>(v1: VO, v2: VO) =>
+  getVoEqual<VO>().equals(v1, v2);
 
 const construct =
   <T extends ValueObject>(parser: Parser<T['props']>) =>
@@ -69,7 +70,7 @@ export abstract class ValueObjectTrait<
 > extends DomainModelTrait<VO> {
   abstract parse: Parser<VO>;
   abstract new: (params: unknown) => Validation<VO>;
-  construct = construct<VO>;
+  factory = construct<VO>;
   isEqual = isEqual<VO>;
   structParsing = structParsing<VO>;
 }

@@ -22,7 +22,7 @@ type ExampleEntity = Entity<ExampleEntityProps>;
 class ExampleEntityTrait extends EntityTrait<ExampleEntity> {
   parse = (rawInput: EntityLiken<ExampleEntity>) =>
     pipe(
-      this.construct,
+      this.factory,
       apply(parseExampleEntityProps),
       apply('exampleEntity'),
       apply(rawInput),

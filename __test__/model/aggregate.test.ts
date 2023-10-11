@@ -8,7 +8,6 @@ import {
   DomainEventTrait,
   Either,
   Entity,
-  EntityEq,
   Identifier,
   Optics,
   Option,
@@ -19,6 +18,7 @@ import {
   parseString,
   parseNumber,
   parseArray,
+  getEntityEq,
 } from 'src';
 import { AggregateLiken, AggregateTrait } from '@model/aggregate-root.base';
 import { omit } from 'ramda';
@@ -38,7 +38,7 @@ const parseExampleEntityProps = (v: EntityLiken<ExampleEntity>) =>
   });
 
 const parseExampleEntity = (v: EntityLiken<ExampleEntity>) =>
-  exampleEntityTrait.construct(parseExampleEntityProps)('exampleEntity')(v);
+  exampleEntityTrait.factory(parseExampleEntityProps)('exampleEntity')(v);
 
 const constructExampleEntityProps = (id: string) => ({
   id,
@@ -72,7 +72,7 @@ const parseExampleAProps = (v: AggregateLiken<ExampleA>) =>
     ),
   });
 const parseExample = (v: AggregateLiken<ExampleA>) =>
-  exampleATrait.construct(parseExampleAProps)('exampleA')(v);
+  exampleATrait.factory(parseExampleAProps)('exampleA')(v);
 
 class ExampleATrait extends AggregateTrait<ExampleA> {
   parse = parseExample;
@@ -244,7 +244,7 @@ describe('Test Aggregate', () => {
               exampleATrait.adder<ExampleEntity>,
               apply('attrArrayEntities' as keyof ExampleA['props']),
               apply({
-                E: EntityEq,
+                E: getEntityEq<ExampleEntity>(),
                 validator: identityInvariantParser,
                 events: [
                   DomainEventTrait.construct({
@@ -268,7 +268,7 @@ describe('Test Aggregate', () => {
                   pipe(
                     a.props.attrArrayEntities,
                     Array.some((_a: ExampleEntity) => {
-                      return EntityEq.equals(_a, newEntity);
+                      return getEntityEq<ExampleEntity>().equals(_a, newEntity);
                     }),
                   ),
                 ).toBeTruthy();

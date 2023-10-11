@@ -2,7 +2,7 @@ import { BaseExceptionBhv } from '@logic/exception.base';
 import { Array, Either, pipe } from '@logic/fp';
 import { DateFromISOString, NumberFromString } from 'io-ts-types';
 import { Parser } from '..';
-
+export * from './Kyc';
 export * from './NoneEmptyString';
 export * from './Person';
 

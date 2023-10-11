@@ -289,20 +289,19 @@ const remover =
     );
   };
 
-export const EntityEq: Eq.Eq<Entity> = Eq.contramap(
-  (entity: Entity<unknown>) => ({
+export const getEntityEq = <T extends Entity<unknown>>() =>
+  Eq.contramap((entity: T) => ({
     tag: entity._tag,
     id: entity.id,
-  }),
-)(
-  Eq.struct({
-    tag: S.Eq,
-    id: S.Eq,
-  }),
-);
+  }))(
+    Eq.struct({
+      tag: S.Eq,
+      id: S.Eq,
+    }),
+  );
 
 const isEqual = <T extends Entity>(entityLeft: T, entityRight: T) =>
-  EntityEq.equals(entityLeft, entityRight);
+  getEntityEq<T>().equals(entityLeft, entityRight);
 
 const getSnapshot = <T>(state: Entity<T>) =>
   ReadonlyRecord.fromRecord({
@@ -317,7 +316,7 @@ export abstract class EntityTrait<
 > extends DomainModelTrait<E> {
   abstract parse: Parser<E>;
   abstract new: (params: unknown) => Validation<E>;
-  construct = construct<E>;
+  factory = construct<E>;
   id = id<E>;
   setId = setId<E>;
   createdAt = createdAt<E>;
@@ -339,7 +338,7 @@ export const structParsingProps = <ET extends Entity>(
 ) => structSummarizerParsing<ET['props']>(raw);
 
 export const getGenericTrait = <E extends Entity>() => ({
-  construct: construct<E>,
+  factory: construct<E>,
   id: id<E>,
   setId: setId<E>,
   createdAt: createdAt<E>,
