@@ -1,9 +1,20 @@
 import { curry } from 'ramda';
-import { IValidate, Parser } from './invariant-validation';
-import { Either, Eq, Optics, Option, ReadonlyRecord, S } from '@logic/fp';
-import { apply, pipe } from 'fp-ts/lib/function';
+import { IValidate, Parser, Validation } from './invariant-validation';
+import {
+  Array,
+  Either,
+  Eq,
+  NEA,
+  Optics,
+  Option,
+  ReadonlyRecord,
+  S,
+} from '@logic/fp';
+import { apply, flow, pipe } from 'fp-ts/lib/function';
 import { DomainEvent } from './event';
 import { BehaviorMonadTrait } from './domain-behavior.monad';
+import { isArray } from 'util';
+import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
 
 export type Identifier = string;
 
@@ -46,7 +57,7 @@ const entityMetaLens = <T>(key: keyof EntityCommonProps) =>
   Optics.id<Entity<T>>().at(key);
 
 const entityPropsLen = <A extends Entity<unknown>>() =>
-  Optics.id<A>().at('props');
+  Optics.id<A>().at('props') as Optics.Lens<A, A['props']>;
 
 const createdAt = <T>(state: Entity<T>) =>
   pipe(state, Optics.get(entityMetaLens('createdAt'))) as Date;
@@ -97,6 +108,59 @@ const setter =
     );
   };
 
+export const adder =
+  <T extends Entity<unknown>, A>(attributeName: keyof T['props']) =>
+  (
+    E: Eq.Eq<A>,
+    validator: (entity: T) => (a: unknown) => Validation<A>,
+    events: DomainEvent[],
+  ) =>
+  (newItem: unknown) =>
+  (entity: T) => {
+    const lens = entityPropsLen<T>().at(attributeName);
+    const attr = Optics.get(lens);
+    const shouldBeArray = pipe(
+      attr,
+      Either.fromPredicate(isArray, () =>
+        NEA.of(
+          BaseExceptionBhv.construct(
+            `property ${attributeName as string} should be an array`,
+            'PROP_NOT_ARRAY',
+          ),
+        ),
+      ),
+      Either.map((a) => a as A[]),
+    );
+    const validating = () => pipe(validator, apply(entity), apply(newItem));
+    const mustNotExist = (arr: A[]) =>
+      Either.fromPredicate(
+        (a: A) => !Array.elem(E)(a)(arr),
+        () => BaseExceptionBhv.construct('Item existed', 'ITEM_EXISTED'),
+      );
+    return pipe(
+      shouldBeArray,
+      Either.bindTo('array'),
+      Either.bind('item', validating),
+      Either.tap(({ item, array }) =>
+        pipe(mustNotExist, apply(array), apply(item)),
+      ),
+      Either.flatMap(({ item, array }) =>
+        Either.tryCatch(
+          () =>
+            Optics.replace(lens)([
+              ...array,
+              item,
+            ] as T['props'][keyof T['props']])(entity),
+          (e: Error) =>
+            BaseExceptionBhv.construct(e.message, 'ADDER_OPTICS_CHANGE_ERROR'),
+        ),
+      ),
+      Either.map((updatedEntity) =>
+        BehaviorMonadTrait.of(updatedEntity, events),
+      ),
+    );
+  };
+
 export const EntityEq: Eq.Eq<Entity<unknown>> = Eq.contramap(
   (entity: Entity<unknown>) => ({
     tag: entity._tag,
@@ -109,7 +173,7 @@ export const EntityEq: Eq.Eq<Entity<unknown>> = Eq.contramap(
   }),
 );
 
-const isEqual = <T>(entityLeft: Entity<T>, entityRight: Entity<T>) =>
+const isEqual = <T extends Entity<unknown>>(entityLeft: T, entityRight: T) =>
   EntityEq.equals(entityLeft, entityRight);
 
 const getSnapshot = <T>(state: Entity<T>) =>

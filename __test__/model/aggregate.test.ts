@@ -66,4 +66,8 @@ describe('Test Aggregate', () => {
       }),
     );
   });
+
+  it('test setter', () => {});
+
+  it('test remover, adder', () => {});
 });
