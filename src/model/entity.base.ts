@@ -1,7 +1,9 @@
 import { curry } from 'ramda';
-import { IValidate } from './invariant-validation';
+import { IValidate, Parser } from './invariant-validation';
 import { Either, Eq, Optics, Option, ReadonlyRecord, S } from '@logic/fp';
-import { pipe } from 'fp-ts/lib/function';
+import { apply, pipe } from 'fp-ts/lib/function';
+import { DomainEvent } from './event';
+import { BehaviorMonadTrait } from './domain-behavior.monad';
 
 export type Identifier = string;
 
@@ -43,8 +45,8 @@ const setId = curry(<T>(id: Identifier, state: Entity<T>) => {
 const entityMetaLens = <T>(key: keyof EntityCommonProps) =>
   Optics.id<Entity<T>>().at(key);
 
-const entityPropsLen = <T>(key: keyof T) =>
-  Optics.id<Entity<T>>().at('props').at(key);
+const entityPropsLen = <A extends Entity<unknown>>() =>
+  Optics.id<A>().at('props');
 
 const createdAt = <T>(state: Entity<T>) =>
   pipe(state, Optics.get(entityMetaLens('createdAt'))) as Date;
@@ -56,23 +58,44 @@ const markUpdate = <T>(state: Entity<T>) =>
   pipe(state, Optics.replace(entityMetaLens('updatedAt'))(new Date()));
 
 const queryProps =
-  <T>(state: Entity<T>) =>
-  (propKey: keyof T) => {
-    return pipe(state, Optics.get(entityPropsLen(propKey)));
+  <A extends Entity<unknown>>(state: A) =>
+  (propKey: keyof A['props']) => {
+    return pipe(state, Optics.get(entityPropsLen<A>().at(propKey)));
   };
 
 export type Query<T, A> = (entity: T) => A;
 export type QueryOpt<T, A> = (entity: T) => Option.Option<A>;
 
 const simpleQuery =
-  <T, R>(key: keyof T) =>
-  (entity: Entity<T>) =>
+  <T extends Entity<unknown>, R>(key: keyof T['props']) =>
+  (entity: T) =>
     queryProps(entity)(key) as R;
 
 const simpleQueryOpt =
-  <T, R>(key: keyof T) =>
-  (entity: Entity<T>) =>
+  <T extends Entity<unknown>, R>(key: keyof T['props']) =>
+  (entity: T) =>
     Option.fromNullable(queryProps(entity)(key) as R);
+
+const setter =
+  <T extends Entity<unknown>, V extends T['props'][keyof T['props']]>(
+    attributeName: keyof T['props'],
+  ) =>
+  (validator: Parser<V>, events: DomainEvent[]) =>
+  (newV: unknown) =>
+  (entity: T) => {
+    return pipe(
+      newV,
+      validator,
+      Either.map((v) =>
+        pipe(
+          Optics.replace(entityPropsLen<T>().at(attributeName)),
+          apply(v),
+          apply(entity),
+          (updatedEntity: T) => BehaviorMonadTrait.of(updatedEntity, events),
+        ),
+      ),
+    );
+  };
 
 export const EntityEq: Eq.Eq<Entity<unknown>> = Eq.contramap(
   (entity: Entity<unknown>) => ({
@@ -108,6 +131,7 @@ export const entityTrait = {
   isEqual,
   queryProps,
   simpleQuery,
+  setter,
   simpleQueryOpt,
   propsLen: entityPropsLen,
 };

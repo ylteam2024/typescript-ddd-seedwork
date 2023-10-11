@@ -42,13 +42,16 @@ describe('Test Aggregate', () => {
         name: 'EVENT_1',
       }),
     ];
-    const changeAttr1: AggBehavior<ExampleA, void> = () => (a: ExampleA) => {
-      return pipe(
-        a,
-        Optics.replace(entityTrait.propsLen('attr1'))('attr1_updated'),
-        (updatedA: ExampleA) => BehaviorMonadTrait.of(updatedA, events),
-      );
-    };
+    const changeAttr1: AggBehavior<ExampleA, void, false> =
+      () => (a: ExampleA) => {
+        return pipe(
+          a,
+          Optics.replace(entityTrait.propsLen<ExampleA>().at('attr1'))(
+            'attr1_updated',
+          ),
+          (updatedA: ExampleA) => BehaviorMonadTrait.of(updatedA, events),
+        );
+      };
 
     pipe(
       constructA('attr1', 2),

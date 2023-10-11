@@ -5,6 +5,8 @@ export type Validation<A> = Either.Either<NEA.NonEmptyArray<BaseException>, A>;
 
 export type Parser<A> = (value: unknown) => Validation<A>;
 
+export const identityParser = <A>(value: unknown) => Either.of(value as A);
+
 export type StructValidation<A> = Either.Either<
   Record<string, NEA.NonEmptyArray<BaseException>>,
   A

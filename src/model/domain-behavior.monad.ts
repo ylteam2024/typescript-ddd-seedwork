@@ -3,6 +3,7 @@ import { AggregateRoot } from './aggregate-root.base';
 import { DomainEvent } from './event/domain-event.base';
 import { pipe } from 'fp-ts/lib/function';
 import { BaseException } from '@logic/exception.base';
+import { Validation } from './invariant-validation';
 
 export interface IEventDispatcher {
   dispatch(event: DomainEvent): IOEither.IOEither<BaseException, void>;
@@ -46,9 +47,15 @@ const run =
     return pipe(eD.multiDispatch(events), IOEither.as(aggregate));
   };
 
-export type AggBehavior<A extends AggregateRoot<unknown>, P> = (
+export type AggBehavior<
+  A extends AggregateRoot<unknown>,
+  P,
+  HasParser extends boolean,
+> = (
   p: P,
-) => (a: A) => BehaviorMonad<A>;
+) => (
+  a: A,
+) => HasParser extends true ? Validation<BehaviorMonad<A>> : BehaviorMonad<A>;
 
 export const BehaviorMonadTrait = {
   map,
