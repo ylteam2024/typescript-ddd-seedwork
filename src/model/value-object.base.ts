@@ -13,7 +13,7 @@ import {
   Validation,
   structSummarizerParsing,
 } from './invariant-validation';
-import { DomainModel } from './domain-model.base';
+import { DomainModel, DomainModelTrait } from './domain-model.base';
 
 export interface ValueObject<T> extends DomainModel<T> {}
 
@@ -60,7 +60,9 @@ export const ValueObjectAuFn = {
   structParsing,
 };
 
-export abstract class ValueObjectTrait<VO extends ValueObject<unknown>> {
+export abstract class ValueObjectTrait<
+  VO extends ValueObject<unknown>,
+> extends DomainModelTrait<VO> {
   abstract parse: Parser<VO>;
   abstract new: (params: unknown) => Validation<VO>;
   construct = construct<VO>;
