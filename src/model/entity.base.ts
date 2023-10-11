@@ -10,11 +10,11 @@ import {
   ReadonlyRecord,
   S,
 } from '@logic/fp';
-import { apply, flow, pipe } from 'fp-ts/lib/function';
+import { apply, pipe } from 'fp-ts/lib/function';
 import { DomainEvent } from './event';
 import { BehaviorMonadTrait } from './domain-behavior.monad';
 import { isArray } from 'util';
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseExceptionBhv } from '@logic/exception.base';
 
 export type Identifier = string;
 
@@ -87,16 +87,27 @@ const simpleQueryOpt =
   (entity: T) =>
     Option.fromNullable(queryProps(entity)(key) as R);
 
+export type InvariantParser<
+  T extends Entity<unknown>,
+  IsPropAttr extends boolean,
+  V extends IsPropAttr extends true ? T['props'][keyof T['props']] : unknown,
+> = (entity: T) => Parser<V>;
+
+export const identityInvariantParser =
+  <T extends Entity<unknown>, V extends T['props'][keyof T['props']]>() =>
+  (v: V) =>
+    Either.of(v);
+
 const setter =
   <T extends Entity<unknown>, V extends T['props'][keyof T['props']]>(
     attributeName: keyof T['props'],
   ) =>
-  (validator: Parser<V>, events: DomainEvent[]) =>
+  (validator: InvariantParser<T, true, V>, events: DomainEvent[]) =>
   (newV: unknown) =>
   (entity: T) => {
     return pipe(
       newV,
-      validator,
+      validator(entity),
       Either.map((v) =>
         pipe(
           Optics.replace(entityPropsLen<T>().at(attributeName)),
@@ -108,19 +119,24 @@ const setter =
     );
   };
 
-export const adder =
-  <T extends Entity<unknown>, A>(attributeName: keyof T['props']) =>
-  (
-    E: Eq.Eq<A>,
-    validator: (entity: T) => (a: unknown) => Validation<A>,
-    events: DomainEvent[],
-  ) =>
+const adder =
+  <T extends Entity<any>, A>(attributeName: keyof T['props']) =>
+  ({
+    E,
+    validator,
+    events,
+  }: {
+    E: Eq.Eq<A>;
+    validator: InvariantParser<T, false, A>;
+    events: DomainEvent[];
+  }) =>
   (newItem: unknown) =>
   (entity: T) => {
     const lens = entityPropsLen<T>().at(attributeName);
-    const attr = Optics.get(lens);
+    const getAttr = Optics.get(lens);
     const shouldBeArray = pipe(
-      attr,
+      entity,
+      getAttr,
       Either.fromPredicate(isArray, () =>
         NEA.of(
           BaseExceptionBhv.construct(
@@ -198,4 +214,5 @@ export const entityTrait = {
   setter,
   simpleQueryOpt,
   propsLen: entityPropsLen,
+  adder,
 };
