@@ -53,5 +53,5 @@ export const ValueObjectAuFn = {
 
 export interface ValueObjectTrait<VO> {
   parse: Parser<VO>;
-  new: (params: unknown) => ValidationWithKey<VO>;
+  new: (params: unknown) => Validation<VO>;
 }
