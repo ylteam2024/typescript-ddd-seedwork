@@ -43,6 +43,7 @@
     "immer": "^10.0.2",
     "io-ts": "^2.2.20",
     "io-ts-types": "^0.5.19",
+    "monocle-ts": "^2.3.13",
     "morgan": "^1.10.0",
     "nanoid": "^3.3.4",
     "newtype-ts": "^0.3.5",
@@ -54,6 +55,7 @@
     "ts-pattern": "^5.0.5",
     "typeorm": "0.3.7",
     "uuid": "^9.0.1",
+    "validator": "^13.11.0",
     "winston": "^3.8.1",
     "xss-clean": "^0.1.1"
   },

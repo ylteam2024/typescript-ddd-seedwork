@@ -1,22 +1,45 @@
 import { curry } from 'ramda';
-import { IValidate, Parser } from './invariant-validation';
+import {
+  Liken,
+  Parser,
+  ParsingInput,
+  Validation,
+  structSummarizerParsing,
+} from './invariant-validation';
 import {
   Array,
   Either,
   Eq,
+  IoTypes,
   NEA,
   Optics,
   Option,
   ReadonlyRecord,
   S,
+  io,
 } from '@logic/fp';
 import { apply, pipe } from 'fp-ts/lib/function';
 import { DomainEvent } from './event';
 import { BehaviorMonadTrait } from './domain-behavior.monad';
 import { BaseExceptionBhv } from '@logic/exception.base';
 import { shouldBeArray } from '@logic/parser';
+import { Brand } from '@type_util/index';
+import { ValueObjectTrait } from './value-object.base';
 
-export type Identifier = string;
+export type Identifier = Brand<string, 'Identifier'>;
+
+export const parseId = (v: unknown) => {
+  const isId = (v: unknown): v is Identifier =>
+    typeof v === 'string' && v.length > 0;
+  return Either.fromPredicate(isId, () =>
+    BaseExceptionBhv.construct('invalid identifier', 'INVALID_IDENTIFIER'),
+  )(v);
+};
+
+export const IdentifierTrait: ValueObjectTrait<Identifier> = {
+  parse: parseId,
+  new: parseId,
+};
 
 export interface EntityCommonProps {
   readonly id: Identifier;
@@ -30,20 +53,57 @@ export interface Entity<T extends ReadonlyRecord.ReadonlyRecord<string, any>>
   readonly props: T;
 }
 
+export type EntityLiken<T extends Entity<unknown>> = Liken<
+  Omit<EntityCommonProps, '_tag'>
+> & {
+  [K in keyof T['props']]: T['props'][K] extends Entity<unknown>
+    ? EntityLiken<T['props'][K]>
+    : T['props'][K] extends Array<unknown> & { [key: number]: Entity<unknown> }
+    ? EntityLiken<T['props'][K][0]>[]
+    : Liken<T['props'][K]>;
+};
+
 const construct =
-  <T>(validate: IValidate<T>) =>
+  <T extends Entity<unknown>>(parser: Parser<T['props']>) =>
   (tag: string) =>
-  ({ id, createdAt, updatedAt }: Omit<EntityCommonProps, '_tag'>) =>
-  (props: T) => {
-    const state: Entity<T> = {
-      id,
-      createdAt,
-      updatedAt,
-      props: props,
-      _tag: tag,
-    };
-    const a = pipe(validate(props), Either.as(state));
-    return a;
+  (props: unknown) => {
+    const MetaLikeParser = io.type({
+      id: io.string,
+      createdAt: IoTypes.fromNullable(IoTypes.date, new Date()),
+      updatedAt: IoTypes.fromNullable(
+        IoTypes.option(IoTypes.date),
+        Option.none,
+      ),
+    });
+
+    const parserMetaLike = (v: unknown) =>
+      pipe(
+        v,
+        MetaLikeParser.decode,
+        Either.flatMap((metaLike) => {
+          return structSummarizerParsing<Omit<EntityCommonProps, '_tag'>>({
+            id: parseId(metaLike.id),
+            createdAt: Either.right(metaLike.createdAt),
+            updatedAt: Either.right(metaLike.updatedAt),
+          });
+        }),
+      );
+
+    return pipe(
+      Either.Do,
+      Either.bind('meta', () => parserMetaLike(props)),
+      Either.bind('props', () => parser(props)),
+      Either.map(
+        ({ props, meta }) =>
+          ({
+            id: meta.id,
+            _tag: tag,
+            createdAt: meta.createdAt,
+            updatedAt: meta.updatedAt,
+            props,
+          } as T),
+      ),
+    );
   };
 
 const idLens = <T>() => Optics.id<Entity<T>>().at('id');
@@ -131,14 +191,16 @@ const adder =
     validator: InvariantParser<T, false, A>;
     events: DomainEvent[];
   }) =>
-  (newItem: unknown) =>
+  (newItem: A) =>
   (entity: T) => {
     const lens = entityPropsLen<T>().at(attributeName);
     const getAttr = Optics.get(lens);
     const validating = () => pipe(validator, apply(entity), apply(newItem));
     const mustNotExist = (arr: A[]) =>
       Either.fromPredicate(
-        (a: A) => !Array.elem(E)(a)(arr),
+        (a: A) => {
+          return !Array.elem(E)(a)(arr);
+        },
         () =>
           NEA.of(BaseExceptionBhv.construct('Item existed', 'ITEM_EXISTED')),
       );
@@ -264,7 +326,22 @@ const getSnapshot = <T>(state: Entity<T>) =>
     ...state.props,
   });
 
-export const entityTrait = {
+export interface EntityTrait<E extends Entity<unknown>> {
+  parse: Parser<E, EntityLiken<E>>;
+  new: (params: unknown) => Validation<E>;
+}
+
+export type EntityLike<T> = {
+  id: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+} & T;
+
+export const structParsingProps = <ET extends Entity<unknown>>(
+  raw: ParsingInput<ET['props']>,
+) => structSummarizerParsing<ET['props']>(raw);
+
+export const EntityGenericTrait = {
   construct,
   id,
   setId,
@@ -280,4 +357,5 @@ export const entityTrait = {
   propsLen: entityPropsLen,
   adder,
   remover,
+  structParsingProps,
 };

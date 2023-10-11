@@ -1,34 +1,58 @@
 import { randomUUID } from 'crypto';
-import { apply, identity } from 'fp-ts/lib/function';
+import { apply } from 'fp-ts/lib/function';
 import { Array, S } from '@logic/fp';
 import {
   AggBehavior,
   AggregateRoot,
-  BehaviorMonad,
   BehaviorMonadTrait,
   DomainEventTrait,
   Either,
   Entity,
   EntityEq,
-  IValidate,
   Identifier,
   Optics,
   Option,
-  entityTrait,
+  EntityGenericTrait,
   identityInvariantParser,
   pipe,
+  EntityTrait,
+  EntityLiken,
+  parseString,
+  parseNumber,
+  parseArray,
 } from 'src';
+import {
+  AggregateGenericTrait,
+  AggregateLiken,
+  AggregateTrait,
+} from '@model/aggregate-root.base';
+import { omit } from 'ramda';
 
 type ExampleEntity = Entity<{ a: string }>;
 
-const constructExampleEntity = (id: Identifier) =>
-  ({
-    id,
-    createdAt: new Date(),
-    updatedAt: Option.some(new Date()),
-    _tag: 'exampleEntity',
-    props: {},
-  } as ExampleEntity);
+const parseExampleEntityProps = (v: EntityLiken<ExampleEntity>) =>
+  EntityGenericTrait.structParsingProps<ExampleEntity>({
+    a: Either.right(String(v.a)),
+  });
+
+const parseExampleEntity = (v: EntityLiken<ExampleEntity>) =>
+  EntityGenericTrait.construct<ExampleEntity>(parseExampleEntityProps)(
+    'exampleEntity',
+  )(v);
+
+class ExampleEntityTrait implements EntityTrait<ExampleEntity> {
+  parse = parseExampleEntity;
+  new = parseExampleEntity;
+}
+
+const exampleEntityTrait = new ExampleEntityTrait();
+
+const constructExampleEntityProps = (id: string) => ({
+  id,
+  createdAt: new Date(),
+  updatedAt: Option.some(new Date()),
+  a: '',
+});
 
 type ExampleAProps = {
   attr1: string;
@@ -39,31 +63,53 @@ type ExampleAProps = {
 
 type ExampleA = AggregateRoot<ExampleAProps>;
 
+const parseExampleAProps = (v: AggregateLiken<ExampleA>) =>
+  AggregateGenericTrait.structParsingProps<ExampleA>({
+    attr1: parseString(v.attr1),
+    attr2: parseNumber(v.attr2),
+    attrArrayPrimitive: pipe(
+      parseArray<string>,
+      apply(parseString),
+      apply(v.attrArrayPrimitive),
+    ),
+    attrArrayEntities: pipe(
+      parseArray<ExampleEntity>,
+      apply(exampleEntityTrait.parse),
+      apply(v.attrArrayEntities),
+    ),
+  });
+const parseExample = (v: AggregateLiken<ExampleA>) =>
+  AggregateGenericTrait.construct<ExampleA>(parseExampleAProps)('exampleA')(v);
+
+class ExampleATrait implements AggregateTrait<ExampleA> {
+  parse = parseExample;
+  new = parseExample;
+}
+
+const exampleATrait = new ExampleATrait();
+
 const constructA = (
   attr1: string,
   attr2: number,
   attrArrayPrimitive: string[] = [],
-  attrArrayEntities: ExampleEntity[] = [],
+  attrArrayEntities: EntityLiken<ExampleEntity>[] = [],
 ) => {
-  const validate: IValidate<ExampleAProps> = (a: ExampleAProps) =>
-    Either.right(a);
-  return entityTrait.construct(validate)('exampleA')({
-    createdAt: new Date(),
-    updatedAt: Option.of(new Date()),
-    id: randomUUID(),
-  })({
+  return exampleATrait.parse({
     attr1,
     attr2,
     attrArrayEntities,
     attrArrayPrimitive,
+    createdAt: new Date(),
+    updatedAt: Option.some(new Date()),
+    id: randomUUID(),
   });
 };
+
 describe('Test Aggregate', () => {
   it('test behavior', () => {
-    const a = constructA('attr1', 2);
-    const events = [
+    const events = (a: ExampleA) => [
       DomainEventTrait.construct({
-        aggregateId: entityTrait.id(Either.getOrElse(() => null)(a)),
+        aggregateId: EntityGenericTrait.id(a),
         aggregateType: 'exampleA',
         name: 'EVENT_1',
       }),
@@ -72,10 +118,10 @@ describe('Test Aggregate', () => {
       () => (a: ExampleA) => {
         return pipe(
           a,
-          Optics.replace(entityTrait.propsLen<ExampleA>().at('attr1'))(
+          Optics.replace(EntityGenericTrait.propsLen<ExampleA>().at('attr1'))(
             'attr1_updated',
           ),
-          (updatedA: ExampleA) => BehaviorMonadTrait.of(updatedA, events),
+          (updatedA: ExampleA) => BehaviorMonadTrait.of(updatedA, events(a)),
         );
       };
 
@@ -85,9 +131,12 @@ describe('Test Aggregate', () => {
       Either.map((bhm) => {
         const [state, bEvents] = bhm([]);
         expect(state.props.attr1).toEqual('attr1_updated');
-        expect(bEvents[0]).toBe(events[0]);
+        expect(omit(['metadata'], bEvents[0])).toStrictEqual(
+          omit(['metadata'], events(state)[0]),
+        );
       }),
       Either.mapLeft((e) => {
+        console.log('error ', e);
         fail();
       }),
     );
@@ -101,28 +150,24 @@ describe('Test Aggregate', () => {
       2,
       ['a', 'b'],
       [
-        constructExampleEntity('id1'),
-        constructExampleEntity('id2'),
-        constructExampleEntity('id3'),
+        constructExampleEntityProps('id1'),
+        constructExampleEntityProps('id2'),
+        constructExampleEntityProps('id3'),
       ],
     );
     it('test adder with primitives array', () => {
       pipe(
         testAgg,
-        // Either.tap((agg) => {
-        //   console.log('agg', agg);
-        //   return Either.right(null);
-        // }),
         Either.flatMap((agg) =>
           pipe(
-            entityTrait.adder<ExampleA, string>,
+            EntityGenericTrait.adder<ExampleA, string>,
             apply('attrArrayPrimitive' as keyof ExampleA['props']),
             apply({
               E: S.Eq,
               validator: identityInvariantParser,
               events: [
                 DomainEventTrait.construct({
-                  aggregateId: entityTrait.id(agg),
+                  aggregateId: EntityGenericTrait.id(agg),
                   aggregateType: testAgg._tag,
                   name: 'ADD_ARRAY_PRIMITIVE',
                 }),
@@ -146,7 +191,7 @@ describe('Test Aggregate', () => {
     });
     describe('test remover with primitives array', () => {
       const remover = pipe(
-        entityTrait.remover<ExampleA, string>,
+        EntityGenericTrait.remover<ExampleA, string>,
         apply('attrArrayPrimitive' as keyof ExampleA['props']),
         apply({
           E: S.Eq,
@@ -155,8 +200,8 @@ describe('Test Aggregate', () => {
             DomainEventTrait.construct({
               aggregateId: pipe(
                 testAgg,
-                Either.map(entityTrait.id),
-                Either.getOrElse(() => 'unknown'),
+                Either.map(EntityGenericTrait.id),
+                Either.getOrElse(() => 'unknown' as Identifier),
               ),
               aggregateType: testAgg._tag,
               name: 'REMOVE_ARRAY_PRIMITIVE',
@@ -167,10 +212,6 @@ describe('Test Aggregate', () => {
       it('remove existing element', () => {
         pipe(
           testAgg,
-          // Either.tap((agg) => {
-          //   console.log('agg', agg);
-          //   return Either.right(null);
-          // }),
           Either.flatMap((agg) => pipe(remover, apply('a'), apply(agg))),
           Either.fold(
             (e) => {
@@ -187,10 +228,6 @@ describe('Test Aggregate', () => {
       it('remove not existing element', () => {
         pipe(
           testAgg,
-          // Either.tap((agg) => {
-          //   console.log('agg', agg);
-          //   return Either.right(null);
-          // }),
           Either.flatMap((agg) => pipe(remover, apply('aaa'), apply(agg))),
           Either.fold(
             (e) => {
@@ -205,49 +242,49 @@ describe('Test Aggregate', () => {
     });
     it('test adder with domain model entity array', () => {
       pipe(
-        testAgg,
-        // Either.tap((agg) => {
-        //   console.log('agg', agg);
-        //   return Either.right(null);
-        // }),
-        Either.flatMap((agg) =>
-          pipe(
-            entityTrait.adder<ExampleA, ExampleEntity>,
-            apply('attrArrayEntities' as keyof ExampleA['props']),
-            apply({
-              E: EntityEq,
-              validator: identityInvariantParser,
-              events: [
-                DomainEventTrait.construct({
-                  aggregateId: entityTrait.id(agg),
-                  aggregateType: testAgg._tag,
-                  name: 'ADD_ARRAY_ENTITY',
-                }),
-              ],
-            }),
-            apply(constructExampleEntity('newEntity')),
-            apply(agg),
-          ),
+        Either.Do,
+        Either.bind('agg', () => testAgg),
+        Either.bind('newEntity', () =>
+          exampleEntityTrait.parse(constructExampleEntityProps('newEntity')),
         ),
-        Either.fold(
-          (e) => {
-            throw e;
-          },
-          (bMonad) => {
-            const [a, e] = bMonad([]);
-            expect(
-              pipe(
-                a.props.attrArrayEntities,
-                Array.some((_a: ExampleEntity) => {
-                  return EntityEq.equals(
-                    _a,
-                    constructExampleEntity('newEntity'),
-                  );
-                }),
-              ),
-            ).toBeTruthy();
-            expect(e).toHaveLength(1);
-          },
+        Either.flatMap(({ agg, newEntity }) =>
+          pipe(
+            pipe(
+              EntityGenericTrait.adder<ExampleA, ExampleEntity>,
+              apply('attrArrayEntities' as keyof ExampleA['props']),
+              apply({
+                E: EntityEq,
+                validator: identityInvariantParser,
+                events: [
+                  DomainEventTrait.construct({
+                    aggregateId: EntityGenericTrait.id(agg),
+                    aggregateType: agg._tag,
+                    name: 'ADD_ARRAY_ENTITY',
+                  }),
+                ],
+              }),
+              apply(newEntity),
+              apply(agg),
+            ),
+            Either.bimap(
+              (e) => {
+                console.log('error ', e);
+                fail();
+              },
+              (bMonad) => {
+                const [a, e] = bMonad([]);
+                expect(
+                  pipe(
+                    a.props.attrArrayEntities,
+                    Array.some((_a: ExampleEntity) => {
+                      return EntityEq.equals(_a, newEntity);
+                    }),
+                  ),
+                ).toBeTruthy();
+                expect(e).toHaveLength(1);
+              },
+            ),
+          ),
         ),
       );
     });

@@ -14,6 +14,7 @@ import * as Array from 'fp-ts/Array';
 import * as NEA from 'fp-ts/NonEmptyArray';
 import * as ReadonlyRecord from 'fp-ts/ReadonlyRecord';
 import * as io from 'io-ts';
+import * as IoTypes from 'io-ts-types';
 import { pipe, flow } from 'fp-ts/lib/function';
 
 export {
@@ -34,5 +35,6 @@ export {
   State,
   ReadonlyRecord,
   Record,
+  IoTypes,
   Apply,
 };

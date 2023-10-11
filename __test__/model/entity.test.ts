@@ -1,6 +1,20 @@
-import { Identifier, entityTrait } from '@model/entity.base';
+import {
+  EntityGenericTrait,
+  EntityLiken,
+  EntityTrait,
+} from '@model/entity.base';
 import { randomUUID } from 'crypto';
-import { Array, Either, Entity, IValidate, Option, pipe } from 'src';
+import { apply } from 'fp-ts/lib/function';
+import {
+  Array,
+  Either,
+  Entity,
+  Option,
+  Parser,
+  parseNumber,
+  parseString,
+  pipe,
+} from 'src';
 
 type ExampleEntityProps = {
   attr1: string;
@@ -9,15 +23,37 @@ type ExampleEntityProps = {
 
 type ExampleEntity = Entity<ExampleEntityProps>;
 
-const validate: IValidate<ExampleEntityProps> = (state: ExampleEntityProps) =>
-  Either.right(state);
+const parseExampleEntityProps: Parser<
+  ExampleEntityProps,
+  EntityLiken<ExampleEntity>
+> = (state) =>
+  EntityGenericTrait.structParsingProps<ExampleEntity>({
+    attr1: parseString(state.attr1),
+    attr2: parseNumber(state.attr2),
+  });
 
-function construct(attr1: string, attr2: number, id: Identifier) {
-  return entityTrait.construct(validate)('exampleEntity')({
+class ExampleEntityTrait implements EntityTrait<ExampleEntity> {
+  parse = (rawInput: EntityLiken<ExampleEntity>) =>
+    pipe(
+      EntityGenericTrait.construct<ExampleEntity>,
+      apply(parseExampleEntityProps),
+      apply('exampleEntity'),
+      apply(rawInput),
+    );
+
+  new = this.parse;
+}
+
+const exampleEntityTrait = new ExampleEntityTrait();
+
+function construct(attr1: string, attr2: number, id: string) {
+  return exampleEntityTrait.parse({
     createdAt: new Date(),
     updatedAt: Option.none,
     id,
-  })({ attr1, attr2 });
+    attr1,
+    attr2,
+  });
 }
 
 describe('test entity', () => {
@@ -30,8 +66,8 @@ describe('test entity', () => {
           fail('error on construct entity');
         },
         (v) => {
-          const attr1 = entityTrait.queryProps(v)('attr1') as string;
-          const attr2 = entityTrait.queryProps(v)('attr2') as number;
+          const attr1 = EntityGenericTrait.queryProps(v)('attr1') as string;
+          const attr2 = EntityGenericTrait.queryProps(v)('attr2') as number;
           expect(attr1).toEqual('attr1');
           expect(attr2).toEqual(3);
         },
@@ -50,8 +86,8 @@ describe('test entity', () => {
           throw e;
         },
         ([e1, e2, e3]) => {
-          expect(entityTrait.isEqual(e1, e2)).toBeTruthy();
-          expect(entityTrait.isEqual(e2, e3)).toBeFalsy();
+          expect(EntityGenericTrait.isEqual(e1, e2)).toBeTruthy();
+          expect(EntityGenericTrait.isEqual(e2, e3)).toBeFalsy();
         },
       ),
     );

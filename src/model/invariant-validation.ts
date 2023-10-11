@@ -1,18 +1,9 @@
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
-import {
-  Apply,
-  Array as A,
-  Either,
-  io,
-  NEA,
-  Option,
-  pipe,
-  Record,
-} from '@logic/fp';
+import { BaseException } from '@logic/exception.base';
+import { Apply, Either, NEA, Option, pipe, Record } from '@logic/fp';
 import { randomUUID } from 'crypto';
 import { Magma } from 'fp-ts/lib/Magma';
 import { Semigroup } from 'fp-ts/lib/Semigroup';
-import { apply, flow } from 'fp-ts/lib/function';
+import { apply } from 'fp-ts/lib/function';
 import { match, P } from 'ts-pattern';
 import { isObject } from 'util';
 
@@ -66,17 +57,23 @@ export const getValidationErrByKeySemigroup: () => Semigroup<ValidationErrByKey>
     };
   };
 
-export const structSummarizerValidating = <T>(
-  struct: Record<string, Validation<unknown>>,
-) => {
+export type ParsingInput<T> = {
+  [K in keyof T]: Validation<T[K]>;
+};
+
+export const structSummarizerParsing = <T>(struct: ParsingInput<T>) => {
   const recordWithKeyValidation = Record.mapWithIndex(
     (k: string, a: Validation<unknown>) =>
-      pipe(a, toValidationErr(Option.some(k))),
-  )(struct);
+      pipe(a, toValidationErr(Option.some(k))) as Either.Either<
+        ValidationErrByKey,
+        ValueOfValidation<typeof a>
+      >,
+  );
   const structValidate = Apply.sequenceS(
     Either.getApplicativeValidation(getValidationErrByKeySemigroup()),
   );
   return pipe(
+    struct,
     recordWithKeyValidation,
     structValidate,
     Either.mapLeft(getErrorFromErrByKey),
@@ -84,36 +81,13 @@ export const structSummarizerValidating = <T>(
 };
 
 export type Validation<A> = Either.Either<ValidationErr, A>;
+export type ValueOfValidation<B> = B extends Validation<infer A> ? A : unknown;
 export type ValidationWithKey<A> = Either.Either<ValidationErrByKey, A>;
 
 export const toValidationErr = (key: Option.Option<string>) =>
   Either.mapLeft((e: ValidationErr) => [key, e] as ValidationErrByKey);
 
-export const decodeWithValidationErr = <T extends io.Props>(
-  ioType: io.ExactC<io.TypeC<T>> | io.TypeC<T>,
-) =>
-  flow(
-    ioType.decode,
-    Either.mapLeft((e) =>
-      pipe(
-        NEA.fromArray(
-          pipe(
-            e,
-            A.map((e) =>
-              BaseExceptionBhv.construct(e.message, String(e.value)),
-            ),
-          ),
-        ),
-        Option.getOrElse(() =>
-          NEA.of(
-            BaseExceptionBhv.construct('', 'EMPTY_EXCEPTION_FROM_IO_DECODE'),
-          ),
-        ),
-      ),
-    ),
-  );
-
-export type Parser<A> = (value: unknown) => Validation<A>;
+export type Parser<A, I = unknown> = (value: I) => Validation<A>;
 
 export const identityParser = <A>(value: unknown) => Either.of(value as A);
 
@@ -125,3 +99,11 @@ export type StructValidation<A> = Either.Either<
 export interface IValidate<T> {
   (state: T): StructValidation<T>;
 }
+
+export type Liken<T> = {
+  [K in keyof T]: T[K] extends string | number | boolean | Date
+    ? unknown
+    : T[K] extends object
+    ? Liken<T[K]>
+    : never;
+};
