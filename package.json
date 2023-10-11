@@ -1,5 +1,5 @@
 {
-  "name": "ts-ddd-seedwork",
+  "name": "ddd-ts",
   "version": "1.0.0",
   "description": "Node typescript seedwork",
   "main": "dist/src/index.js",
@@ -31,8 +31,10 @@
   },
   "dependencies": {
     "@types/amqplib": "^0.10.1",
+    "@types/jest": "^29.5.4",
     "amqp-connection-manager": "^4.1.11",
     "amqplib": "^0.10.3",
+    "ddd-ts": "^0.4.0",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.0.2",
     "fp-ts": "^2.16.1",
@@ -58,13 +60,14 @@
   },
   "devDependencies": {
     "@types/got": "^9.6.12",
-    "@types/jest": "^29.4.0",
+    "@types/jest": "^29.5.4",
     "@types/morgan": "^1.9.3",
     "@types/node": "^18.7.14",
     "@types/ramda": "^0.28.23",
     "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "5.52.0",
     "@typescript-eslint/parser": "5.52.0",
+    "ddd-ts": "^0.4.0",
     "eslint": "^7.30.0",
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^3.4.0",

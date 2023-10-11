@@ -1,3 +1,2 @@
-export * from './DomainEvents';
-export * from './DomainEvent';
-export * from './BaseHandler';
+export * from './domain-event.base';
+export * from './handler.base';

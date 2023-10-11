@@ -1,4 +1,4 @@
-import { BaseException } from '@logic/exceptions';
+import { BaseException, BaseExceptionBhv, panic } from '@logic/exception.base';
 import { ConsoleDomainLogger } from '@ports/DomainLogger';
 import { Channel, Message } from 'amqplib';
 import { MessageListener } from './MessageListener';
@@ -131,7 +131,7 @@ export class MessageConsumer {
       this.logger.info(`QOS set to: ${this._prefetchCount}`);
       this.setIsReady(true);
     } catch (error) {
-      throw new BaseException({ code: 'MESSAGE_EQUALIZE_PREFETCH' });
+      panic(BaseExceptionBhv.construct('', 'MESSAGE_EQUALIZE_PREFETCH'));
     }
   }
 
@@ -176,7 +176,9 @@ export class MessageConsumer {
     isRetry: boolean,
     exception: BaseException,
   ) {
-    this.logger.info(`Exception on handle delivery ${exception.getMessage()}`);
+    this.logger.info(
+      `Exception on handle delivery ${BaseExceptionBhv.getMessage(exception)}`,
+    );
     this.nak(channel, message, isRetry);
   }
 
@@ -205,10 +207,10 @@ export class MessageConsumer {
         channel,
         message,
         this.isRetry(),
-        new BaseException({
-          code: 'HANDLE_DELIVERY_EXCEPTION',
-          message: error.toString(),
-        }),
+        BaseExceptionBhv.construct(
+          error.toString(),
+          'HANDLE_DELIVERY_EXCEPTION',
+        ),
       );
     }
   }
@@ -233,7 +235,7 @@ export class MessageConsumer {
       this.setTag(tag.consumerTag);
       this.setIsConsuming(true);
     } catch (error) {
-      throw new BaseException({ code: 'INITIATE_CONSUMER_FAILED' });
+      panic(BaseExceptionBhv.construct('', 'INITIATE_CONSUMER_FAILED'));
     }
   }
 

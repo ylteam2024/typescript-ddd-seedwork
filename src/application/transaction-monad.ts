@@ -1,4 +1,4 @@
-import { BaseException } from '@logic/exceptions';
+import { BaseException } from '@logic/exception.base';
 import { TaskEither, IO, Either } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 
