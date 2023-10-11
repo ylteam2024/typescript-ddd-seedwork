@@ -36,7 +36,7 @@
     "types": [
       "node",
       "jest",
-      "reflect-metadata"
+      // "reflect-metadata"
     ],
     "typeRoots": [
       "./node_modules/@types",

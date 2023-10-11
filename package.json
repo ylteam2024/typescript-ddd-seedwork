@@ -66,8 +66,8 @@
     "@types/node": "^18.7.14",
     "@types/ramda": "^0.28.23",
     "@types/uuid": "^8.3.4",
-    "@typescript-eslint/eslint-plugin": "5.52.0",
-    "@typescript-eslint/parser": "5.52.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
     "ddd-ts": "^0.4.0",
     "eslint": "^7.30.0",
     "eslint-config-prettier": "^8.3.0",
@@ -80,7 +80,7 @@
     "ts-node": "^10.9.1",
     "tsc-alias": "^1.8.2",
     "tsconfig-paths": "^4.1.0",
-    "typescript": "4.9.5",
+    "typescript": "^5.2.2",
     "typescript-transform-paths": "^3.4.6"
   }
 }

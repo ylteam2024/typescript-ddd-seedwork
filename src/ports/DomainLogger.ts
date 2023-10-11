@@ -1,3 +1,4 @@
+import { IO } from '@logic/fp';
 import { Logger as BaseLogger } from './Logger';
 
 export class ConsoleDomainLogger implements BaseLogger {
@@ -7,22 +8,27 @@ export class ConsoleDomainLogger implements BaseLogger {
     return `[${this._context}] ${message}`;
   }
 
-  info(message: string, ...meta: unknown[]): void {
-    console.info(`${this.formatMessageWithContext(message)}`, ...meta);
+  info(message: string, ...meta: unknown[]): IO.IO<void> {
+    return () =>
+      console.info(`${this.formatMessageWithContext(message)}`, ...meta);
   }
 
-  error(message: string, trace?: unknown, ...meta: unknown[]): void {
-    console.error(
-      `${this.formatMessageWithContext(message)} ${trace || '[No trace info]'}`,
-    );
+  error(message: string, trace?: unknown, ...meta: unknown[]): IO.IO<void> {
+    return () =>
+      console.error(
+        `${this.formatMessageWithContext(message)} ${
+          trace || '[No trace info]'
+        }`,
+        ...meta,
+      );
   }
 
-  warn(message: string, ...meta: unknown[]): void {
-    console.warn(this.formatMessageWithContext(message));
+  warn(message: string, ...meta: unknown[]): IO.IO<void> {
+    return () => console.warn(this.formatMessageWithContext(message), ...meta);
   }
 
-  debug(message: string, ...meta: unknown[]): void {
-    console.debug(this.formatMessageWithContext(message));
+  debug(message: string, ...meta: unknown[]): IO.IO<void> {
+    return () => console.debug(this.formatMessageWithContext(message), ...meta);
   }
 
   setContext(context: string): void {
