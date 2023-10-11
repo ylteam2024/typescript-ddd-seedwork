@@ -5,32 +5,37 @@
     in a respective module/use case.
 */
 
-import { Identifier } from '@model/Identifier';
+import { BaseException } from '@logic/exception.base';
+import { TE, Option } from '@logic/fp';
+import { Identifier } from '@model/entity.base';
+import { BaseEntity } from 'typeorm';
 
 export type QueryParams = any;
 
 export interface Save<Entity> {
-  save(entity: Entity): Promise<Entity>;
+  save(entity: Entity): TE.TaskEither<BaseException, Entity>;
 }
 
 export interface Add<Entity> {
-  add(entity: Entity): Promise<Entity>;
+  add(entity: Entity): TE.TaskEither<BaseException, Entity>;
 }
 
 export interface SaveMultiple<Entity> {
-  saveMultiple?(entities: Entity[]): Promise<Entity[]>;
+  saveMultiple?(
+    entities: Entity[],
+  ): TE.TaskEither<BaseException, readonly Entity[]>;
 }
 
 export interface FindOne<Entity> {
-  findOneOrThrow?(params: QueryParams): Promise<Entity>;
+  findOneOrThrow?(params: QueryParams): TE.TaskEither<BaseException, Entity>;
 }
 
 export interface FindOneById<Entity> {
-  findOneByIdOrThrow?(id: Identifier<any>): Promise<Entity>;
+  findOneByIdOrThrow?(id: Identifier): TE.TaskEither<BaseException, Entity>;
 }
 
 export interface FindMany<Entity> {
-  findMany?(params: QueryParams): Promise<Entity[]>;
+  findMany?(params: QueryParams): TE.TaskEither<BaseException, Entity[]>;
 }
 
 export interface OrderBy {
@@ -59,11 +64,11 @@ export interface DataWithPaginationMeta<T> {
 export interface FindManyPaginated<Entity> {
   findManyPaginated?(
     options: FindManyPaginatedParams,
-  ): Promise<DataWithPaginationMeta<Entity[]>>;
+  ): TE.TaskEither<BaseException, DataWithPaginationMeta<Entity[]>>;
 }
 
 export interface DeleteOne<Entity> {
-  delete?(entity: Entity): Promise<Entity>;
+  delete?(entity: Entity): TE.TaskEither<BaseException, unknown>;
 }
 
 export interface RepositoryPort<Entity>

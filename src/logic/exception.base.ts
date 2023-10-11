@@ -1,3 +1,5 @@
+import { toString } from 'ramda';
+
 export class BaseException extends Error {
   readonly code: string;
   readonly loc: string[];
@@ -21,6 +23,9 @@ const getLoc = (exception: BaseException) => exception.loc;
 export const panic = (exception: BaseException) => {
   throw exception;
 };
+
+export const unknownErrToBaseException = (err: unknown) =>
+  BaseExceptionBhv.construct(toString(err), '');
 
 export const BaseExceptionBhv = {
   construct,

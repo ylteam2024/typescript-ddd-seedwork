@@ -1,7 +1,4 @@
-import {
-  IllegalArgumentException,
-  IllegalStateException,
-} from '@logic/exceptions';
+import { BaseExceptionBhv, panic } from '@logic/exception.base';
 import R from 'ramda';
 
 export class JsonMediaReader {
@@ -11,9 +8,12 @@ export class JsonMediaReader {
     try {
       this.representation = JSON.parse(aJson);
     } catch (error) {
-      throw new IllegalStateException({
-        message: 'This media instance is not in json format',
-      });
+      panic(
+        BaseExceptionBhv.construct(
+          'This media instance is not in json format',
+          'MEDIA_NOT_IN_JSON_FORMAT',
+        ),
+      );
     }
   }
 
@@ -26,9 +26,12 @@ export class JsonMediaReader {
   }
   getValue(path: string) {
     if (!/(^(?:\/[a-zA-Z0-9_]+)+$)/g.test(path)) {
-      throw new IllegalArgumentException({
-        message: `Json Path Reader is in illegal ${path}`,
-      });
+      panic(
+        BaseExceptionBhv.construct(
+          `Json Path Reader is in illegal ${path}`,
+          'JSON_PATH_ILLGEGAL',
+        ),
+      );
     }
     return R.path(path.split('/').slice(1), this.representation);
   }

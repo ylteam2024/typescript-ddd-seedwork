@@ -1,24 +1,24 @@
 import { BaseException } from '@logic/exception.base';
-import { TaskEither, IO, Either } from '@logic/fp';
+import { TE, IO, Either } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 
 export interface IEntityManager {
-  begin(): TaskEither.TaskEither<BaseException, IO.IO<unknown>>;
-  commit(): TaskEither.TaskEither<BaseException, IO.IO<unknown>>;
-  rollback(): TaskEither.TaskEither<BaseException, IO.IO<unknown>>;
+  begin(): TE.TaskEither<BaseException, IO.IO<unknown>>;
+  commit(): TE.TaskEither<BaseException, IO.IO<unknown>>;
+  rollback(): TE.TaskEither<BaseException, IO.IO<unknown>>;
 }
 
 export type Transaction<EM extends IEntityManager, RT> = {
-  (em: EM): TaskEither.TaskEither<BaseException, IO.IO<RT>>;
+  (em: EM): TE.TaskEither<BaseException, IO.IO<RT>>;
 };
 
-const of = <A>(a: A) => TaskEither.rightIO(IO.of(a));
+const of = <A>(a: A) => TE.rightIO(IO.of(a));
 
 const map =
   <A, B>(f: (a: A) => B) =>
   <EM extends IEntityManager>(fa: Transaction<EM, A>) =>
   (em: EM) =>
-    pipe(em, fa, TaskEither.map(IO.map(f)));
+    pipe(em, fa, TE.map(IO.map(f)));
 
 const chain =
   <A, B, EM extends IEntityManager>(f: (a: A) => Transaction<EM, B>) =>
@@ -26,7 +26,7 @@ const chain =
   (em: EM) =>
     pipe(
       fa(em),
-      TaskEither.flatMap((ioa) => {
+      TE.flatMap((ioa) => {
         const a = ioa(); // compute io - side effect
         return f(a)(em);
       }),
@@ -36,13 +36,13 @@ const run =
   async (em: EM) => {
     const eitherIO = await pipe(
       em.begin(),
-      TaskEither.flatMap(() => transaction(em)),
-      TaskEither.flatMap(() => em.commit()),
-      TaskEither.tapError((err) => {
+      TE.flatMap(() => transaction(em)),
+      TE.flatMap(() => em.commit()),
+      TE.tapError((err) => {
         console.error('[Transaction Monad Err] ', err);
         return pipe(
           em.rollback(),
-          TaskEither.flatMap(() => TaskEither.left(err)),
+          TE.flatMap(() => TE.left(err)),
         );
       }),
     )();

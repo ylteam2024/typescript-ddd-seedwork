@@ -6,7 +6,7 @@ import {
   ExchangeListener,
   ExchangeType,
 } from '@ports/pubsub/rabbitmq';
-import { UUID } from 'src';
+import { randomUUID } from 'crypto';
 import { MockEventHandlingTracker } from '../mock/MockEventHandlingTracker';
 
 describe('Exchange Listener', () => {
@@ -15,8 +15,7 @@ describe('Exchange Listener', () => {
   const directExchangeName = 'exchange_for_test_exchange_listener_direct';
   const messageTypes = ['test_message_type'];
   // init an random queueName to prevent consumer of test receive any event that emitted in the pass
-  const newQueueName = () =>
-    `queue_for_test_exchange_listener_${UUID.generate().toString()}`;
+  const newQueueName = () => `queue_for_test_exchange_listener_${randomUUID()}`;
   let exchanges = [];
 
   beforeAll(() => {
@@ -129,7 +128,7 @@ describe('Exchange Listener', () => {
       // let exchange: Exchange = null;
       let listener: AbstractMockListener = null;
       await new Promise(async (resolve, reject) => {
-        const messageId = UUID.generate().toString();
+        const messageId = randomUUID();
         class MockListener extends AbstractMockListener {
           // isDurable = false;
           exchangeType = ExchangeType.FANOUT;
@@ -181,7 +180,7 @@ describe('Exchange Listener', () => {
       let handled = false;
       // let exchange: Exchange = null;
       let listener: AbstractMockListener = null;
-      const messageId = UUID.generate().toString();
+      const messageId = randomUUID();
       await new Promise(async (resolve, reject) => {
         class MockListener extends AbstractMockListener {
           exchangeDurable = true;
@@ -228,7 +227,7 @@ describe('Exchange Listener', () => {
     let handled = false;
     // let exchange: Exchange = null;
     let listener: AbstractMockListener = null;
-    const messageId = UUID.generate().toString();
+    const messageId = randomUUID();
     const routingKeys = ['mock_routing_key1', 'mock_routing_key2'];
     await new Promise(async (resolve, reject) => {
       class MockListenerTarget extends AbstractMockListener {
@@ -280,7 +279,7 @@ describe('Exchange Listener', () => {
     let handled = false;
     // let exchange: Exchange = null;
     let listener: AbstractMockListener = null;
-    const messageId = UUID.generate().toString();
+    const messageId = randomUUID();
     const testDirectMessageType = 'test_direct_message_type';
     await new Promise(async (resolve, reject) => {
       class MockListenerTarget extends AbstractMockListener {

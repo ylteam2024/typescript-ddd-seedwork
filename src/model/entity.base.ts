@@ -38,17 +38,17 @@ const setId = curry(<T>(id: Identifier, state: Entity<T>) => {
   return pipe(state, Optics.replace(idLens<T>())(id));
 });
 
-const entityMetaLens = (key: keyof EntityCommonProps) =>
-  Optics.id<Entity<unknown>>().at(key);
+const entityMetaLens = <T>(key: keyof EntityCommonProps) =>
+  Optics.id<Entity<T>>().at(key);
 
 const entityPropsLen = <T>(key: keyof T) =>
   Optics.id<Entity<T>>().at('props').at(key);
 
 const createdAt = <T>(state: Entity<T>) =>
-  pipe(state, Optics.get(entityMetaLens('createdAt')));
+  pipe(state, Optics.get(entityMetaLens('createdAt'))) as Date;
 
 const updatedAt = <T>(state: Entity<T>) =>
-  pipe(state, Optics.get(entityMetaLens('updatedAt')));
+  pipe(state, Optics.get(entityMetaLens('updatedAt'))) as Date;
 
 const markUpdate = <T>(state: Entity<T>) =>
   pipe(state, Optics.replace(entityMetaLens('updatedAt'))(new Date()));

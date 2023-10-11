@@ -1,18 +1,42 @@
 /* eslint-disable new-cap */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { Identifier } from '@model/Identifier';
-import { AggregateRoot } from '@model/Aggregate';
-import { CreateEntityProps } from '@model/Entity';
-import { DateVO } from '@model/valueObjects/Date';
+import { BaseExceptionBhv } from '@logic/exception.base';
+import { Either, NEA, pipe, TE } from '@logic/fp';
+import { Newtype } from 'newtype-ts';
+import { AggregateRoot } from '@model/aggregate-root.base';
+import { EntityTrait, Identifier } from '@model/entity.base';
+import { Validation } from '@model/invariant-validation';
 import { TypeormEntityBase } from './BaseEntity';
+import { validate } from 'uuid';
+import { identity } from 'ramda';
 
 export type OrmEntityProps<OrmEntity> = Omit<
   OrmEntity,
   'id' | 'createdAt' | 'updatedAt'
 >;
 
-export interface EntityProps<IdentifierType extends Identifier<any>> {
+interface IParseOrmId<T> {
+  (domainId: Identifier): Validation<T>;
+}
+
+type UUIDTypeOrm = Newtype<{ readonly UUIDTypeOrm: unique symbol }, string>;
+
+const defaultToOrmId: IParseOrmId<UUIDTypeOrm> = (domainId: Identifier) => {
+  function isUuid(v: unknown): v is UUIDTypeOrm {
+    return typeof v === 'string' && validate(v);
+  }
+  return pipe(
+    domainId,
+    Either.fromPredicate(isUuid, () =>
+      NEA.of(
+        BaseExceptionBhv.construct('UUID not in valid form', 'UUID_NOT_VALID'),
+      ),
+    ),
+  );
+};
+
+export interface EntityProps<IdentifierType extends Identifier> {
   id?: IdentifierType;
 }
 
@@ -23,57 +47,62 @@ export interface Mapper<
   toDomainEntity(
     ormEntity: OrmEntity,
     extraInfo: Record<string, any>,
-  ): Promise<Entity>;
+  ): TE.TaskEither<unknown, Entity>;
 
   toOrmEntity(
     entity: Entity,
     extraInfo: Record<string, any>,
-  ): Promise<OrmEntity>;
+  ): TE.TaskEither<unknown, OrmEntity>;
 }
 
 export abstract class OrmMapper<
-  IdentifierRawType extends string | number,
-  IdentifierType extends Identifier<IdentifierRawType>,
-  Entity extends AggregateRoot<IdentifierType>,
-  OrmEntity extends TypeormEntityBase<IdentifierRawType>,
+  IdentifierType extends Identifier,
+  Entity extends AggregateRoot<any>,
+  OrmEntity extends TypeormEntityBase<string>,
 > implements Mapper<Entity, OrmEntity>
 {
   constructor(
-    private entityConstructor: new (
-      props: CreateEntityProps<IdentifierType>,
-    ) => Entity,
+    private entityConstructor: new (props: unknown) => Entity,
     private ormEntityConstructor: new (props: any) => OrmEntity,
   ) {}
 
   protected abstract toDomainProps(
     ormEntity: OrmEntity,
-  ): Promise<EntityProps<IdentifierType>>;
+  ): TE.TaskEither<unknown, EntityProps<IdentifierType>>;
 
   protected abstract toOrmProps(
     entity: Entity,
-  ): Promise<OrmEntityProps<OrmEntity>>;
+  ): TE.TaskEither<unknown, OrmEntityProps<OrmEntity>>;
 
-  async toDomainEntity(ormEntity: OrmEntity): Promise<Entity> {
-    const { id, ...props } = await this.toDomainProps(ormEntity);
-    const ormEntityBase: TypeormEntityBase<IdentifierRawType> =
-      ormEntity as unknown as TypeormEntityBase<IdentifierRawType>;
-    return new this.entityConstructor({
-      id,
-      ...props,
-      createdAt: new DateVO(ormEntityBase.createdAt),
-      updatedAt: new DateVO(ormEntityBase.updatedAt),
-    });
+  toDomainEntity(ormEntity: OrmEntity): TE.TaskEither<unknown, Entity> {
+    return pipe(
+      ormEntity,
+      this.toDomainProps,
+      TE.map(
+        (props) =>
+          new this.entityConstructor({
+            ...props,
+            createdAt: ormEntity.createdAt,
+            updatedAt: ormEntity.updatedAt,
+          }),
+      ),
+    );
   }
 
-  async toOrmEntity(entity: Entity): Promise<OrmEntity> {
-    const props = await this.toOrmProps(entity);
-    const createdAt = entity.getCreatedAt();
-    const updatedAt = entity.getUpdatedAt();
-    return new this.ormEntityConstructor({
-      ...props,
-      id: entity.id() && entity.id().toValue(),
-      updatedAt: updatedAt && updatedAt.getValue(),
-      createdAt: createdAt && createdAt.getValue(),
-    });
+  toOrmEntity(
+    entity: Entity,
+    toOrmId: IParseOrmId<UUIDTypeOrm> = defaultToOrmId,
+  ): TE.TaskEither<unknown, OrmEntity> {
+    const createdAt = EntityTrait.createdAt(entity);
+    const updatedAt = EntityTrait.updatedAt(entity);
+    return pipe(
+      TE.Do,
+      TE.bind('props', () => this.toOrmProps(entity)),
+      TE.bind('id', () => TE.fromEither(toOrmId(EntityTrait.id(entity)))),
+      TE.map(
+        ({ props, id }) =>
+          new this.ormEntityConstructor({ ...props, id, updatedAt, createdAt }),
+      ),
+    );
   }
 }

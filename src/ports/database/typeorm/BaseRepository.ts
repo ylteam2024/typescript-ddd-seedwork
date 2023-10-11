@@ -10,13 +10,18 @@ import {
   RepositoryPort,
   DataWithPaginationMeta,
 } from '@ports/Repository';
-import { DomainEvents } from '@model/event/DomainEvents';
 import { Logger } from '@ports/Logger';
 import { OrmMapper } from './BaseMapper';
-import { AggregateRoot } from '@model/Aggregate';
-import { Identifier } from '@model/Identifier';
-import { NotFoundException } from '@logic/exceptions';
 import { TypeormEntityBase } from './BaseEntity';
+import { Array, flow, pipe, TE, Option } from '@logic/fp';
+import {
+  BaseException,
+  BaseExceptionBhv,
+  unknownErrToBaseException,
+} from '@logic/exception.base';
+import { identity } from 'ramda';
+import { AggregateRoot } from '@model/aggregate-root.base';
+import { EntityTrait, Identifier } from '@model/entity.base';
 
 export type WhereCondition<OrmEntity> =
   | FindOptionsWhere<OrmEntity>[]
@@ -25,20 +30,13 @@ export type WhereCondition<OrmEntity> =
   | string;
 
 export abstract class TypeormRepositoryBase<
-  IdentifierRawType extends string | number,
-  IdentifierType extends Identifier<IdentifierRawType>,
-  Entity extends AggregateRoot<IdentifierType>,
-  OrmEntity extends TypeormEntityBase<IdentifierRawType>,
+  Entity extends AggregateRoot<unknown>,
+  OrmEntity extends TypeormEntityBase<string>,
 > implements RepositoryPort<Entity>
 {
   protected constructor(
     protected readonly repository: Repository<OrmEntity>,
-    protected readonly mapper: OrmMapper<
-      IdentifierRawType,
-      IdentifierType,
-      Entity,
-      OrmEntity
-    >,
+    protected readonly mapper: OrmMapper<Identifier, Entity, OrmEntity>,
     protected readonly logger: Logger,
   ) {}
 
@@ -54,131 +52,158 @@ export abstract class TypeormRepositoryBase<
     params: QueryParams,
   ): FindOptionsWhere<OrmEntity>;
 
-  async save(entity: Entity): Promise<Entity> {
-    const ormEntity = await this.mapper.toOrmEntity(entity);
-    const result = await this.repository.save(ormEntity);
-    await DomainEvents.publishEvents(
-      entity.id(),
-      this.logger,
-      this.correlationId,
+  save(entity: Entity): TE.TaskEither<BaseException, Entity> {
+    return pipe(
+      entity,
+      this.mapper.toOrmEntity,
+      TE.flatMap(TE.tryCatchK(this.repository.save, identity)),
+      TE.tapIO(() =>
+        this.logger.debug(
+          `[${entity.constructor.name}] persisted ${EntityTrait.id(
+            entity,
+          ).toString()}`,
+        ),
+      ),
+      TE.chain(this.mapper.toDomainEntity),
+      TE.mapError(unknownErrToBaseException),
     );
-    this.logger.debug(
-      `[${entity.constructor.name}] persisted ${entity.id.toString()}`,
-    );
-    return this.mapper.toDomainEntity(result);
   }
 
-  async add(entity: Entity): Promise<Entity> {
-    const ormEntity = await this.mapper.toOrmEntity(entity);
-    const result = await this.repository.save(ormEntity);
-    await DomainEvents.publishEvents(
-      entity.id(),
-      this.logger,
-      this.correlationId,
+  add(entity: Entity): TE.TaskEither<BaseException, Entity> {
+    return pipe(
+      entity,
+      this.mapper.toOrmEntity,
+      TE.flatMap(TE.tryCatchK(this.repository.save, identity)),
+      TE.tapIO((result) =>
+        this.logger.debug(`[${entity.constructor.name}] persisted ${result}`),
+      ),
+      TE.flatMap(this.mapper.toDomainEntity),
+      TE.mapError(unknownErrToBaseException),
     );
-    this.logger.debug(`[${entity.constructor.name}] persisted ${result}`);
-    return this.mapper.toDomainEntity(result);
   }
 
-  async saveMultiple(entities: Entity[]): Promise<Entity[]> {
-    const ormEntities = await Promise.all(
-      entities.map(async (entity) => {
-        return await this.mapper.toOrmEntity(entity);
-      }),
+  saveMultiple(entities: Entity[]) {
+    return pipe(
+      entities,
+      Array.map(this.mapper.toOrmEntity),
+      TE.sequenceArray,
+      TE.flatMap(
+        TE.tryCatchK(
+          (ormEntities) => this.repository.save([...ormEntities]),
+          identity,
+        ),
+      ),
+      TE.tapIO(() =>
+        this.logger.debug(
+          `[${entities}]: persisted ${entities.map((entity) => entity.id)}`,
+        ),
+      ),
+      TE.flatMap(flow(Array.map(this.mapper.toDomainEntity), TE.sequenceArray)),
+      TE.mapError(unknownErrToBaseException),
     );
-    const result = await this.repository.save(ormEntities);
-    await Promise.all(
-      entities.map((entity) =>
-        DomainEvents.publishEvents(
-          entity.id(),
-          this.logger,
-          this.correlationId,
+  }
+
+  findOne(
+    params: QueryParams = {},
+  ): TE.TaskEither<BaseException, Option.Option<Entity>> {
+    return pipe(
+      { where: this.prepareQuery(params), relations: this.relations },
+      TE.tryCatchK(this.repository.findOne, identity),
+      TE.flatMap(
+        flow(
+          Option.fromNullable,
+          Option.map(this.mapper.toDomainEntity),
+          Option.sequence(TE.ApplicativeSeq),
+        ),
+      ),
+      TE.mapError(unknownErrToBaseException),
+    );
+  }
+
+  findOneOrThrow(
+    params: QueryParams = {},
+  ): TE.TaskEither<BaseException, Entity> {
+    return pipe(
+      params,
+      this.findOne,
+      TE.flatMap(
+        Option.fold(
+          () =>
+            TE.left(
+              BaseExceptionBhv.construct(
+                `Entity not found ${JSON.stringify(params)}`,
+                'NOT_FOUND',
+              ),
+            ),
+          (entity) => TE.right(entity),
         ),
       ),
     );
-    this.logger.debug(
-      `[${entities}]: persisted ${entities.map((entity) => entity.id)}`,
-    );
-    return await Promise.all(
-      result.map(async (entity) => await this.mapper.toDomainEntity(entity)),
-    );
   }
 
-  async findOne(params: QueryParams = {}): Promise<Entity | undefined> {
-    const where = this.prepareQuery(params);
-    const found = await this.repository.findOne({
-      where,
-      relations: this.relations,
-    });
-    return found ? this.mapper.toDomainEntity(found) : undefined;
+  findOneByIdOrThrow(id: Identifier): TE.TaskEither<BaseException, Entity> {
+    return this.findOneOrThrow({ id });
   }
 
-  async findOneOrThrow(params: QueryParams = {}): Promise<Entity> {
-    const found = await this.findOne(params);
-    if (!found) {
-      throw new NotFoundException({});
-    }
-    return found;
-  }
-
-  async findOneByIdOrThrow(id: IdentifierType): Promise<Entity> {
-    const found = await this.repository.findOne({
-      // @ts-ignore
-      where: { id: id.toValue() },
-    });
-    if (!found) {
-      throw new NotFoundException({});
-    }
-    return this.mapper.toDomainEntity(found);
-  }
-
-  async findMany(params: QueryParams = {}): Promise<Entity[]> {
-    const result = await this.repository.find({
-      where: this.prepareQuery(params),
-      relations: this.relations,
-    });
-
-    return Promise.all(
-      result.map(async (item) => await this.mapper.toDomainEntity(item)),
+  findMany(params: QueryParams = {}): TE.TaskEither<BaseException, Entity[]> {
+    return pipe(
+      {
+        where: this.prepareQuery(params),
+        relations: this.relations,
+      },
+      TE.tryCatchK(this.repository.find, identity),
+      TE.flatMap(flow(Array.map(this.mapper.toDomainEntity), TE.sequenceArray)),
+      TE.map((foundEntities) => [...foundEntities]),
+      TE.mapError(unknownErrToBaseException),
     );
   }
 
-  async findManyPaginated({
+  findManyPaginated({
     params = {},
     pagination,
     orderBy,
-  }: FindManyPaginatedParams): Promise<DataWithPaginationMeta<Entity[]>> {
-    const [data, count] = await this.repository.findAndCount({
-      skip: pagination?.skip,
-      take: pagination?.limit,
-      where: this.prepareQuery(params),
-      order: orderBy as FindOptionsOrder<OrmEntity>,
-      relations: this.relations,
-    });
-
-    const result: DataWithPaginationMeta<Entity[]> = {
-      data: await Promise.all(
-        data.map(async (item) => await this.mapper.toDomainEntity(item)),
+  }: FindManyPaginatedParams): TE.TaskEither<
+    BaseException,
+    DataWithPaginationMeta<Entity[]>
+  > {
+    return pipe(
+      {
+        skip: pagination?.skip,
+        take: pagination?.limit,
+        where: this.prepareQuery(params),
+        order: orderBy as FindOptionsOrder<OrmEntity>,
+        relations: this.relations,
+      },
+      TE.tryCatchK(this.repository.findAndCount, identity),
+      TE.flatMap(([data, count]) =>
+        pipe(
+          data,
+          Array.map(this.mapper.toDomainEntity),
+          TE.sequenceArray,
+          TE.map((entities) => ({
+            data: [...entities],
+            count,
+            limit: pagination?.limit,
+            page: pagination?.page,
+          })),
+        ),
       ),
-      count,
-      limit: pagination?.limit,
-      page: pagination?.page,
-    };
-
-    return result;
+      TE.mapError(unknownErrToBaseException),
+    );
   }
 
-  async delete(entity: Entity): Promise<Entity> {
-    await this.repository.remove(await this.mapper.toOrmEntity(entity));
-    await DomainEvents.publishEvents(
-      entity.id(),
-      this.logger,
-      this.correlationId,
+  delete(entity: Entity): TE.TaskEither<BaseException, unknown> {
+    return pipe(
+      entity,
+      this.mapper.toOrmEntity,
+      TE.flatMap(TE.tryCatchK(this.repository.remove, identity)),
+      TE.tapIO(() =>
+        this.logger.debug(
+          `[${entity.constructor.name}] deleted ${EntityTrait.id(entity)}`,
+        ),
+      ),
+      TE.mapError(unknownErrToBaseException),
     );
-    this.logger.debug(
-      `[${entity.constructor.name}] deleted ${entity.id().toValue()}`,
-    );
-    return entity;
   }
 
   protected correlationId?: string;
