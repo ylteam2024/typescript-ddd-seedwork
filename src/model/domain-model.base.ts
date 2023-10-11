@@ -6,6 +6,8 @@ export class DomainModel<T = unknown> {
   readonly _tag: string;
 }
 
+export type GetProps<T extends DomainModel> = T['props'];
+
 const modelPropsLen = <A extends DomainModel<unknown>>() =>
   Optics.id<A>().at('props') as Optics.Lens<A, A['props']>;
 
