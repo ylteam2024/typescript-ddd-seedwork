@@ -15,7 +15,7 @@ import {
 } from './invariant-validation';
 import { DomainModel, DomainModelTrait } from './domain-model.base';
 
-export interface ValueObject<T> extends DomainModel<T> {}
+export interface ValueObject<T = unknown> extends DomainModel<T> {}
 
 const voEqual = Eq.struct({
   _tag: S.Eq,
@@ -28,7 +28,7 @@ const isEqual = <T>(v1: ValueObject<T>, v2: ValueObject<T>) =>
   voEqual.equals(v1, v2);
 
 const construct =
-  <T extends ValueObject<unknown>>(parser: Parser<T['props']>) =>
+  <T extends ValueObject>(parser: Parser<T['props']>) =>
   (tag: string) =>
   (props: unknown) => {
     return pipe(
@@ -40,21 +40,21 @@ const construct =
     );
   };
 
-export type VOLiken<T extends ValueObject<unknown>> = T extends {
+export type VOLiken<T extends ValueObject> = T extends {
   likenType: infer U;
 }
   ? U
   : {
-      [K in keyof T['props']]: T['props'][K] extends ValueObject<unknown>
+      [K in keyof T['props']]: T['props'][K] extends ValueObject
         ? VOLiken<T['props'][K]>
         : T['props'][K] extends Array<unknown> & {
-            [key: number]: ValueObject<unknown>;
+            [key: number]: ValueObject;
           }
         ? VOLiken<T['props'][K][0]>[]
         : Liken<T['props'][K]>;
     };
 
-const structParsing = <ET extends ValueObject<unknown>>(
+const structParsing = <ET extends ValueObject>(
   raw: ParsingInput<ET['props']>,
 ) => structSummarizerParsing<ET['props']>(raw);
 
@@ -65,7 +65,7 @@ export const ValueObjectAuFn = {
 };
 
 export abstract class ValueObjectTrait<
-  VO extends ValueObject<unknown>,
+  VO extends ValueObject,
 > extends DomainModelTrait<VO> {
   abstract parse: Parser<VO>;
   abstract new: (params: unknown) => Validation<VO>;
@@ -79,7 +79,7 @@ export interface PrimitiveVOTrait<VO> {
   new: (params: unknown) => Validation<VO>;
 }
 
-export const getVOGenricTrait = <VO extends ValueObject<unknown>>() => ({
+export const getVOGenricTrait = <VO extends ValueObject>() => ({
   construct: construct<VO>,
   isEqual: isEqual<VO>,
   structParsing: structParsing<VO>,

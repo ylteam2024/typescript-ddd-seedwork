@@ -42,28 +42,29 @@ export const IdentifierTrait: PrimitiveVOTrait<Identifier> = {
   new: parseId,
 };
 
-export interface Entity<T extends ReadonlyRecord.ReadonlyRecord<string, any>>
-  extends DomainModel<T> {
+export interface Entity<
+  T extends ReadonlyRecord.ReadonlyRecord<string, any> = unknown,
+> extends DomainModel<T> {
   readonly props: T;
   readonly id: Identifier;
   readonly createdAt: Date;
   readonly updatedAt: Option.Option<Date>;
 }
 
-type EntityCommonProps = Omit<Entity<unknown>, 'props'>;
+type EntityCommonProps = Omit<Entity, 'props'>;
 
-export type EntityLiken<T extends Entity<unknown>> = Liken<
+export type EntityLiken<T extends Entity> = Liken<
   Omit<EntityCommonProps, '_tag'>
 > & {
-  [K in keyof T['props']]: T['props'][K] extends Entity<unknown>
+  [K in keyof T['props']]: T['props'][K] extends Entity
     ? EntityLiken<T['props'][K]>
-    : T['props'][K] extends Array<unknown> & { [key: number]: Entity<unknown> }
+    : T['props'][K] extends Array<unknown> & { [key: number]: Entity }
     ? EntityLiken<T['props'][K][0]>[]
     : Liken<T['props'][K]>;
 };
 
 const construct =
-  <T extends Entity<unknown>>(parser: Parser<T['props']>) =>
+  <T extends Entity>(parser: Parser<T['props']>) =>
   (tag: string) =>
   (props: unknown) => {
     const MetaLikeParser = io.type({
@@ -105,51 +106,47 @@ const construct =
     );
   };
 
-const idLens = <T extends Entity<unknown>>() => Optics.id<T>().at('id');
+const idLens = <T extends Entity>() => Optics.id<T>().at('id');
 
-const id = <T extends Entity<unknown>>(state: T) =>
-  pipe(state, Optics.get(idLens<T>()));
+const id = <T extends Entity>(state: T) => pipe(state, Optics.get(idLens<T>()));
 
 const setId =
-  <T extends Entity<unknown>>(id: Identifier) =>
+  <T extends Entity>(id: Identifier) =>
   (state: T) => {
     return pipe(state, Optics.replace(idLens<T>())(id));
   };
 
-const entityMetaLens = <T extends Entity<unknown>>(
-  key: keyof EntityCommonProps,
-) => Optics.id<T>().at(key);
+const entityMetaLens = <T extends Entity>(key: keyof EntityCommonProps) =>
+  Optics.id<T>().at(key);
 
-const entityPropsLen = <A extends Entity<unknown>>() =>
+const entityPropsLen = <A extends Entity>() =>
   Optics.id<A>().at('props') as Optics.Lens<A, A['props']>;
 
-const createdAt = <T extends Entity<unknown>>(state: T) =>
+const createdAt = <T extends Entity>(state: T) =>
   pipe(state, Optics.get(entityMetaLens('createdAt'))) as Date;
 
-const updatedAt = <T extends Entity<unknown>>(state: T) =>
+const updatedAt = <T extends Entity>(state: T) =>
   pipe(state, Optics.get(entityMetaLens('updatedAt')));
 
-const markUpdate = <T extends Entity<unknown>>(state: T) =>
+const markUpdate = <T extends Entity>(state: T) =>
   pipe(state, Optics.replace(entityMetaLens('updatedAt'))(new Date()));
 
-export type Query<T extends Entity<unknown>, A> = (entity: T) => A;
-export type QueryOpt<T extends Entity<unknown>, A> = (
-  entity: T,
-) => Option.Option<A>;
+export type Query<T extends Entity, A> = (entity: T) => A;
+export type QueryOpt<T extends Entity, A> = (entity: T) => Option.Option<A>;
 
 export type InvariantParser<
-  T extends Entity<unknown>,
+  T extends Entity,
   IsPropAttr extends boolean,
   V extends IsPropAttr extends true ? T['props'][keyof T['props']] : unknown,
 > = (entity: T) => Parser<V>;
 
 export const identityInvariantParser =
-  <T extends Entity<unknown>, V extends T['props'][keyof T['props']]>() =>
+  <T extends Entity, V extends T['props'][keyof T['props']]>() =>
   (v: V) =>
     Either.of(v);
 
 const setter =
-  <T extends Entity<unknown>, V extends T['props'][keyof T['props']]>(
+  <T extends Entity, V extends T['props'][keyof T['props']]>(
     attributeName: keyof T['props'],
   ) =>
   (validator: InvariantParser<T, true, V>, events: DomainEvent[]) =>
@@ -170,7 +167,7 @@ const setter =
   };
 
 const adder =
-  <T extends Entity<unknown>, A>(attributeName: keyof T['props']) =>
+  <T extends Entity, A>(attributeName: keyof T['props']) =>
   ({
     E,
     validator,
@@ -228,7 +225,7 @@ const adder =
   };
 
 const remover =
-  <T extends Entity<unknown>, A>(attributeName: keyof T['props']) =>
+  <T extends Entity, A>(attributeName: keyof T['props']) =>
   ({
     E,
     validator,
@@ -292,7 +289,7 @@ const remover =
     );
   };
 
-export const EntityEq: Eq.Eq<Entity<unknown>> = Eq.contramap(
+export const EntityEq: Eq.Eq<Entity> = Eq.contramap(
   (entity: Entity<unknown>) => ({
     tag: entity._tag,
     id: entity.id,
@@ -304,7 +301,7 @@ export const EntityEq: Eq.Eq<Entity<unknown>> = Eq.contramap(
   }),
 );
 
-const isEqual = <T extends Entity<unknown>>(entityLeft: T, entityRight: T) =>
+const isEqual = <T extends Entity>(entityLeft: T, entityRight: T) =>
   EntityEq.equals(entityLeft, entityRight);
 
 const getSnapshot = <T>(state: Entity<T>) =>
@@ -316,7 +313,7 @@ const getSnapshot = <T>(state: Entity<T>) =>
   });
 
 export abstract class EntityTrait<
-  E extends Entity<unknown>,
+  E extends Entity,
 > extends DomainModelTrait<E> {
   abstract parse: Parser<E>;
   abstract new: (params: unknown) => Validation<E>;
@@ -337,11 +334,11 @@ export abstract class EntityTrait<
   structParsingProps = structParsingProps<E>;
 }
 
-export const structParsingProps = <ET extends Entity<unknown>>(
+export const structParsingProps = <ET extends Entity>(
   raw: ParsingInput<ET['props']>,
 ) => structSummarizerParsing<ET['props']>(raw);
 
-export const getGenericTrait = <E extends Entity<unknown>>() => ({
+export const getGenericTrait = <E extends Entity>() => ({
   construct: construct<E>,
   id: id<E>,
   setId: setId<E>,
