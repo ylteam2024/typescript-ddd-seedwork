@@ -5,11 +5,10 @@ import { BaseExceptionBhv } from '@logic/exception.base';
 import { Either, NEA, pipe, TE } from '@logic/fp';
 import { Newtype } from 'newtype-ts';
 import { AggregateRoot } from '@model/aggregate-root.base';
-import { EntityTrait, Identifier } from '@model/entity.base';
+import { entityTrait, Identifier } from '@model/entity.base';
 import { Validation } from '@model/invariant-validation';
 import { TypeormEntityBase } from './BaseEntity';
 import { validate } from 'uuid';
-import { identity } from 'ramda';
 
 export type OrmEntityProps<OrmEntity> = Omit<
   OrmEntity,
@@ -93,12 +92,12 @@ export abstract class OrmMapper<
     entity: Entity,
     toOrmId: IParseOrmId<UUIDTypeOrm> = defaultToOrmId,
   ): TE.TaskEither<unknown, OrmEntity> {
-    const createdAt = EntityTrait.createdAt(entity);
-    const updatedAt = EntityTrait.updatedAt(entity);
+    const createdAt = entityTrait.createdAt(entity);
+    const updatedAt = entityTrait.updatedAt(entity);
     return pipe(
       TE.Do,
       TE.bind('props', () => this.toOrmProps(entity)),
-      TE.bind('id', () => TE.fromEither(toOrmId(EntityTrait.id(entity)))),
+      TE.bind('id', () => TE.fromEither(toOrmId(entityTrait.id(entity)))),
       TE.map(
         ({ props, id }) =>
           new this.ormEntityConstructor({ ...props, id, updatedAt, createdAt }),

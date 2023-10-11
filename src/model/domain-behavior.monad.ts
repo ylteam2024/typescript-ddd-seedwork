@@ -9,25 +9,28 @@ export interface IEventDispatcher {
   multiDispatch(events: DomainEvent[]): IOEither.IOEither<BaseException, void>;
 }
 
-export type DomainBehavior<T> = State.State<DomainEvent[], AggregateRoot<T>>;
+export type BehaviorMonad<A extends AggregateRoot<unknown>> = State.State<
+  DomainEvent[],
+  A
+>;
 
 const map =
-  <T>(f: (a: AggregateRoot<T>) => AggregateRoot<T>) =>
-  (fa: DomainBehavior<T>) =>
+  <A extends AggregateRoot<unknown>>(f: (a: A) => A) =>
+  (fa: BehaviorMonad<A>) =>
     State.map(f)(fa);
 
-const of =
-  <T>(aggregateState: AggregateRoot<T>) =>
-  (itsEvent: DomainEvent[]) =>
-  (commingEvents: DomainEvent[]) =>
-    [
-      aggregateState,
-      Array.getMonoid<DomainEvent>().concat(itsEvent, commingEvents),
-    ];
+const of = <A extends AggregateRoot<unknown>>(
+  aggregateState: A,
+  itsEvent: DomainEvent[],
+) =>
+  ((commingEvents: DomainEvent[]) => [
+    aggregateState,
+    Array.getMonoid<DomainEvent>().concat(itsEvent, commingEvents),
+  ]) as BehaviorMonad<A>;
 
 const chain =
-  <T>(f: (a: AggregateRoot<T>) => DomainBehavior<T>) =>
-  (ma: DomainBehavior<T>) =>
+  <A extends AggregateRoot<unknown>>(f: (a: A) => BehaviorMonad<A>) =>
+  (ma: BehaviorMonad<A>) =>
   (s: DomainEvent[]) => {
     const state = ma(s);
     return f(state[0])(state[1]);
@@ -35,12 +38,19 @@ const chain =
 
 const run =
   (eD: IEventDispatcher) =>
-  <T>(behavior: DomainBehavior<T>, initEvents: DomainEvent[]) => {
+  <A extends AggregateRoot<unknown>>(
+    behavior: BehaviorMonad<A>,
+    initEvents: DomainEvent[],
+  ) => {
     const [aggregate, events] = behavior(initEvents);
     return pipe(eD.multiDispatch(events), IOEither.as(aggregate));
   };
 
-export const BehaviorMonad = {
+export type AggBehavior<A extends AggregateRoot<unknown>, P> = (
+  p: P,
+) => (a: A) => BehaviorMonad<A>;
+
+export const BehaviorMonadTrait = {
   map,
   of,
   chain,

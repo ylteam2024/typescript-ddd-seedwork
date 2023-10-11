@@ -61,6 +61,19 @@ const queryProps =
     return pipe(state, Optics.get(entityPropsLen(propKey)));
   };
 
+export type Query<T, A> = (entity: T) => A;
+export type QueryOpt<T, A> = (entity: T) => Option.Option<A>;
+
+const simpleQuery =
+  <T, R>(key: keyof T) =>
+  (entity: Entity<T>) =>
+    queryProps(entity)(key) as R;
+
+const simpleQueryOpt =
+  <T, R>(key: keyof T) =>
+  (entity: Entity<T>) =>
+    Option.fromNullable(queryProps(entity)(key) as R);
+
 export const EntityEq: Eq.Eq<Entity<unknown>> = Eq.contramap(
   (entity: Entity<unknown>) => ({
     tag: entity._tag,
@@ -84,7 +97,7 @@ const getSnapshot = <T>(state: Entity<T>) =>
     ...state.props,
   });
 
-export const EntityTrait = {
+export const entityTrait = {
   construct,
   id,
   setId,
@@ -94,4 +107,7 @@ export const EntityTrait = {
   getSnapshot,
   isEqual,
   queryProps,
+  simpleQuery,
+  simpleQueryOpt,
+  propsLen: entityPropsLen,
 };

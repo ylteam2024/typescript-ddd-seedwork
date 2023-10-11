@@ -1,4 +1,5 @@
 import { Identifier } from '@model/entity.base';
+import { randomUUID } from 'crypto';
 
 type DomainEventMetadata = {
   /** Timestamp when this domain event occurred */
@@ -25,3 +26,26 @@ export interface DomainEvent {
   name: string;
   metadata: DomainEventMetadata;
 }
+
+const construct = ({
+  aggregateId,
+  aggregateType,
+  name,
+}: {
+  aggregateId: Identifier;
+  aggregateType: string;
+  name: string;
+}) =>
+  ({
+    aggregateId,
+    aggregateType,
+    name,
+    metadata: {
+      timestamp: new Date().getTime(),
+      correlationId: randomUUID(),
+    },
+  } as DomainEvent);
+
+export const DomainEventTrait = {
+  construct,
+};

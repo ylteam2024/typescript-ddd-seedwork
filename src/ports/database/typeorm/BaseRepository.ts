@@ -21,7 +21,7 @@ import {
 } from '@logic/exception.base';
 import { identity } from 'ramda';
 import { AggregateRoot } from '@model/aggregate-root.base';
-import { EntityTrait, Identifier } from '@model/entity.base';
+import { entityTrait, Identifier } from '@model/entity.base';
 
 export type WhereCondition<OrmEntity> =
   | FindOptionsWhere<OrmEntity>[]
@@ -59,9 +59,9 @@ export abstract class TypeormRepositoryBase<
       TE.flatMap(TE.tryCatchK(this.repository.save, identity)),
       TE.tapIO(() =>
         this.logger.debug(
-          `[${entity.constructor.name}] persisted ${EntityTrait.id(
-            entity,
-          ).toString()}`,
+          `[${entity.constructor.name}] persisted ${entityTrait
+            .id(entity)
+            .toString()}`,
         ),
       ),
       TE.chain(this.mapper.toDomainEntity),
@@ -199,7 +199,7 @@ export abstract class TypeormRepositoryBase<
       TE.flatMap(TE.tryCatchK(this.repository.remove, identity)),
       TE.tapIO(() =>
         this.logger.debug(
-          `[${entity.constructor.name}] deleted ${EntityTrait.id(entity)}`,
+          `[${entity.constructor.name}] deleted ${entityTrait.id(entity)}`,
         ),
       ),
       TE.mapError(unknownErrToBaseException),

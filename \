@@ -1,0 +1,26 @@
+import {
+  AggBehavior,
+  AggregateRoot,
+  Behavior,
+  BehaviorMonad,
+  BehaviorMonadTrait,
+  Either,
+  entityTrait,
+} from 'src';
+
+type ExampleAProps = {
+  attr1: string;
+  attr2: number;
+};
+
+type ExampleA = AggregateRoot<ExampleAProps>;
+
+const constructA = () => {
+  const validate = (a: ExampleA) => Either.right(a);
+};
+describe('Test Aggregate', () => {
+  it('test behavior', () => {
+    const changeAttr1: AggBehavior<ExampleA, void> = () => (a: ExampleA) =>
+      BehaviorMonadTrait.of(entityTrait.construct());
+  });
+});
