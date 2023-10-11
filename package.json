@@ -1,5 +1,5 @@
 {
-  "name": "typescript-ddd-seedwrok",
+  "name": "ts-ddd-seedwork",
   "version": "1.0.0",
   "description": "Node typescript seedwork",
   "main": "dist/src/index.js",
@@ -35,9 +35,11 @@
     "amqplib": "^0.10.3",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.0.2",
+    "fp-ts": "^2.16.1",
     "got": "11.8.3",
     "helmet": "^6.0.0",
     "http-status": "^1.5.2",
+    "immer": "^10.0.2",
     "morgan": "^1.10.0",
     "nanoid": "^3.3.4",
     "oxide.ts": "^1.1.0",
