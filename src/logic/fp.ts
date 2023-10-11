@@ -10,8 +10,9 @@ import * as Either from 'fp-ts/Either';
 import * as IO from 'fp-ts/IO';
 import * as State from 'fp-ts/State';
 import * as IOEither from 'fp-ts/IOEither';
-import * as Array from 'fp-ts/Array';
+import * as Arr from 'fp-ts/Array';
 import * as NEA from 'fp-ts/NonEmptyArray';
+import * as NUM from 'fp-ts/number';
 import * as ReadonlyRecord from 'fp-ts/ReadonlyRecord';
 import * as io from 'io-ts';
 import * as IoTypes from 'io-ts-types';
@@ -24,11 +25,12 @@ export {
   flow,
   O as Option,
   S,
+  NUM,
   Reader,
   TaskEither as TE,
   IO,
   io,
-  Array,
+  Arr,
   Either,
   NEA,
   IOEither,

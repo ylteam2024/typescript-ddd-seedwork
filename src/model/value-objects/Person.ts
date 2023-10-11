@@ -11,7 +11,7 @@ export const parseUsernameFromStr =
     excMessage,
     instructions,
     code,
-    minLength = 8,
+    minLength = 1,
     maxLength = 20,
   }: {
     excMessage?: string;
@@ -22,11 +22,12 @@ export const parseUsernameFromStr =
   }): Parser<Username> =>
   (v: unknown) =>
     Either.fromPredicate(
-      (v): v is Username =>
-        typeof v === 'string' &&
-        new RegExp(
+      (v): v is Username => {
+        const regex = new RegExp(
           `^(?=.{${minLength},${maxLength}}$)(?![_.])(?!.*[_.]{2})[a-zA-Z0-9._]+(?<![_.])$`,
-        ).test(v),
+        );
+        return typeof v === 'string' && regex.test(v);
+      },
       () =>
         BaseExceptionBhv.construct(
           excMessage || 'Username is not valid',

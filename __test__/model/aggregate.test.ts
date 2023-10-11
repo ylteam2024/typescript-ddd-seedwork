@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import { apply } from 'fp-ts/lib/function';
-import { Array, S } from '@logic/fp';
+import { Arr, S } from '@logic/fp';
 import {
   AggBehavior,
   AggregateRoot,
@@ -267,7 +267,7 @@ describe('Test Aggregate', () => {
                 expect(
                   pipe(
                     a.props.attrArrayEntities,
-                    Array.some((_a: ExampleEntity) => {
+                    Arr.some((_a: ExampleEntity) => {
                       return getEntityEq<ExampleEntity>().equals(_a, newEntity);
                     }),
                   ),

@@ -6,7 +6,7 @@ import {
   structSummarizerParsing,
 } from './invariant-validation';
 import {
-  Array,
+  Arr,
   Either,
   Eq,
   IoTypes,
@@ -185,7 +185,7 @@ const adder =
     const mustNotExist = (arr: A[]) =>
       Either.fromPredicate(
         (a: A) => {
-          return !Array.elem(E)(a)(arr);
+          return !Arr.elem(E)(a)(arr);
         },
         () =>
           NEA.of(BaseExceptionBhv.construct('Item existed', 'ITEM_EXISTED')),
@@ -243,7 +243,7 @@ const remover =
     const mustExist = (arr: A[]) => (checkedItem: A) =>
       pipe(
         arr,
-        Array.findIndex((a) => E.equals(a, checkedItem)),
+        Arr.findIndex((a) => E.equals(a, checkedItem)),
         Either.fromOption(() =>
           NEA.of(
             BaseExceptionBhv.construct(
@@ -266,7 +266,7 @@ const remover =
         pipe(mustExist, apply(array), apply(item)),
       ),
       Either.map(({ array, idx }) =>
-        pipe(Array.deleteAt, apply(idx), apply(array)),
+        pipe(Arr.deleteAt, apply(idx), apply(array)),
       ),
       Either.flatMap((updatedArray) =>
         Either.tryCatch(

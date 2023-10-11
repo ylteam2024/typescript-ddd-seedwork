@@ -1,7 +1,17 @@
 import { BaseException } from '@logic/exception.base';
-import { Apply, Either, NEA, Option, pipe, Record } from '@logic/fp';
+import {
+  Apply,
+  Arr as A,
+  Either,
+  NEA,
+  Option,
+  S,
+  pipe,
+  Record,
+} from '@logic/fp';
 import { randomUUID } from 'crypto';
 import { Magma } from 'fp-ts/lib/Magma';
+import { Ord } from 'fp-ts/lib/Ord';
 import { Semigroup } from 'fp-ts/lib/Semigroup';
 import { apply } from 'fp-ts/lib/function';
 import { match, P } from 'ts-pattern';
@@ -130,3 +140,28 @@ export const optionizeParser =
       Option.map((v) => parser(v)),
       Option.sequence(Either.Applicative),
     );
+
+const strIntOrder: Ord<string> = {
+  equals: S.Eq.equals,
+  compare: (first, second) => {
+    const fI = parseInt(first);
+    const fS = parseInt(second);
+    return fI < fS ? -1 : fI > fS ? 1 : 0;
+  },
+};
+
+export const arrayParser =
+  <T>(parser: Parser<T>) =>
+  (a: unknown[]) => {
+    return pipe(
+      a,
+      A.reduceWithIndex({}, (i, acc, cur) => ({
+        ...acc,
+        [i]: parser(cur),
+      })),
+      structSummarizerParsing<Record<number, T>>,
+      Either.map(
+        Record.reduce(strIntOrder)([], (acc: T[], cur) => [...acc, cur]),
+      ),
+    );
+  };

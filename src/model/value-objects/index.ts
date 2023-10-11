@@ -1,5 +1,5 @@
 import { BaseExceptionBhv } from '@logic/exception.base';
-import { Array, Either, pipe } from '@logic/fp';
+import { Arr, Either, pipe } from '@logic/fp';
 import { DateFromISOString, NumberFromString } from 'io-ts-types';
 import { Parser } from '..';
 export * from './Kyc';
@@ -53,4 +53,4 @@ export const parseDate =
 export const parseArray =
   <T>(parser: Parser<T>) =>
   (v: unknown[]) =>
-    Array.traverse(Either.Applicative)(parser)(v);
+    Arr.traverse(Either.Applicative)(parser)(v);

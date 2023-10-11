@@ -13,7 +13,7 @@ import {
 import { Logger } from '@ports/Logger';
 import { OrmMapper } from './BaseMapper';
 import { TypeormEntityBase } from './BaseEntity';
-import { Array, flow, pipe, TE, Option } from '@logic/fp';
+import { Arr, flow, pipe, TE, Option } from '@logic/fp';
 import {
   BaseException,
   BaseExceptionBhv,
@@ -86,7 +86,7 @@ export abstract class TypeormRepositoryBase<
   saveMultiple(entities: Entity[]) {
     return pipe(
       entities,
-      Array.map(this.mapper.toOrmEntity),
+      Arr.map(this.mapper.toOrmEntity),
       TE.sequenceArray,
       TE.flatMap(
         TE.tryCatchK(
@@ -99,7 +99,7 @@ export abstract class TypeormRepositoryBase<
           `[${entities}]: persisted ${entities.map((entity) => entity.id)}`,
         ),
       ),
-      TE.flatMap(flow(Array.map(this.mapper.toDomainEntity), TE.sequenceArray)),
+      TE.flatMap(flow(Arr.map(this.mapper.toDomainEntity), TE.sequenceArray)),
       TE.mapError(unknownErrToBaseException),
     );
   }
@@ -153,7 +153,7 @@ export abstract class TypeormRepositoryBase<
         relations: this.relations,
       },
       TE.tryCatchK(this.repository.find, identity),
-      TE.flatMap(flow(Array.map(this.mapper.toDomainEntity), TE.sequenceArray)),
+      TE.flatMap(flow(Arr.map(this.mapper.toDomainEntity), TE.sequenceArray)),
       TE.map((foundEntities) => [...foundEntities]),
       TE.mapError(unknownErrToBaseException),
     );
@@ -179,7 +179,7 @@ export abstract class TypeormRepositoryBase<
       TE.flatMap(([data, count]) =>
         pipe(
           data,
-          Array.map(this.mapper.toDomainEntity),
+          Arr.map(this.mapper.toDomainEntity),
           TE.sequenceArray,
           TE.map((entities) => ({
             data: [...entities],

@@ -2,7 +2,7 @@ import { EntityLiken, EntityTrait } from '@model/entity.base';
 import { randomUUID } from 'crypto';
 import { apply } from 'fp-ts/lib/function';
 import {
-  Array,
+  Arr,
   Either,
   Entity,
   Option,
@@ -75,7 +75,7 @@ describe('test entity', () => {
     const e3 = construct('a', 3, 'id2');
     pipe(
       [e1, e2, e3],
-      Array.sequence(Either.Applicative),
+      Arr.sequence(Either.Applicative),
       Either.fold(
         (e) => {
           throw e;

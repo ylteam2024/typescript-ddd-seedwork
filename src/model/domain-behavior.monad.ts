@@ -1,4 +1,4 @@
-import { Array, IOEither, State } from '@logic/fp';
+import { Arr, IOEither, State } from '@logic/fp';
 import { AggregateRoot } from './aggregate-root.base';
 import { DomainEvent } from './event/domain-event.base';
 import { pipe } from 'fp-ts/lib/function';
@@ -26,7 +26,7 @@ const of = <A extends AggregateRoot<unknown>>(
 ) =>
   ((commingEvents: DomainEvent[]) => [
     aggregateState,
-    Array.getMonoid<DomainEvent>().concat(itsEvent, commingEvents),
+    Arr.getMonoid<DomainEvent>().concat(itsEvent, commingEvents),
   ]) as BehaviorMonad<A>;
 
 const chain =

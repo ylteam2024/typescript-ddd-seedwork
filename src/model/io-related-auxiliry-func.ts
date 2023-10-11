@@ -1,6 +1,6 @@
 import { BaseExceptionBhv } from '@logic/exception.base';
 import { PathReporter } from 'io-ts/PathReporter';
-import { Array as A, Either, io, NEA, Option, pipe, Record } from '@logic/fp';
+import { Arr as A, Either, io, NEA, Option, pipe, Record } from '@logic/fp';
 import { flow } from 'fp-ts/lib/function';
 import { Mixed, Props } from 'io-ts';
 
