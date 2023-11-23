@@ -41,7 +41,7 @@ export interface EntityProps<IdentifierType extends Identifier> {
 
 export interface Mapper<
   Entity extends AggregateRoot<any>,
-  OrmEntity extends TypeormEntityBase<any>,
+  OrmEntity extends TypeormEntityBase,
 > {
   toDomainEntity(
     ormEntity: OrmEntity,
@@ -57,7 +57,7 @@ export interface Mapper<
 export abstract class OrmMapper<
   IdentifierType extends Identifier,
   Entity extends AggregateRoot<any>,
-  OrmEntity extends TypeormEntityBase<string>,
+  OrmEntity extends TypeormEntityBase,
 > implements Mapper<Entity, OrmEntity>
 {
   constructor(

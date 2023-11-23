@@ -31,7 +31,7 @@ export type WhereCondition<OrmEntity> =
 
 export abstract class TypeormRepositoryBase<
   Entity extends AggregateRoot<unknown>,
-  OrmEntity extends TypeormEntityBase<string>,
+  OrmEntity extends TypeormEntityBase,
 > implements RepositoryPort<Entity>
 {
   entityTrait = getGenericTrait<Entity>();

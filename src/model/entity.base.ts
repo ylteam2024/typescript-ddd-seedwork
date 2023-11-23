@@ -108,7 +108,8 @@ const construct =
 
 const idLens = <T extends Entity>() => Optics.id<T>().at('id');
 
-const id = <T extends Entity>(state: T) => pipe(state, Optics.get(idLens<T>()));
+const id = <T extends Entity>(state: T) =>
+  pipe(state, Optics.get(idLens<T>())) as Identifier;
 
 const setId =
   <T extends Entity>(id: Identifier) =>
@@ -208,7 +209,7 @@ const adder =
             Optics.replace(lens)([
               ...array,
               item,
-            ] as T['props'][keyof T['props']])(entity),
+            ] as T['props'][keyof T['props']])(entity) as T,
           (e: Error) =>
             NEA.of(
               BaseExceptionBhv.construct(
@@ -273,7 +274,7 @@ const remover =
           () =>
             Optics.replace(lens)(updatedArray as T['props'][keyof T['props']])(
               entity,
-            ),
+            ) as T,
           (e: Error) =>
             NEA.of(
               BaseExceptionBhv.construct(
@@ -354,3 +355,10 @@ export const getGenericTrait = <E extends Entity>() => ({
   propsLen: entityPropsLen<E>,
   structParsingProps: structParsingProps<E>,
 });
+
+// This is the type of the data structure that the lens will be operating on.
+interface Whole {
+  readonly a: string;
+  readonly b: number;
+  readonly c: boolean;
+}
