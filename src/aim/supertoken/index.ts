@@ -12,19 +12,27 @@ export enum RECIPE {
   SOCIAL_LOGIN_PASSWORDLESS_OPT_EMAIL_PHONE = 'SOCIAL_LOGIN_PASSWORDLESS_OPT_EMAIL_PHONE',
 }
 
+export enum FRAMEWORK {
+  NEST = 'NEST',
+  EXPRESS = 'EXPRESS',
+}
+
 interface InitParam {
   spInstanceUri: string;
   appId: Option.Option<string>;
   appName: string;
   apiDomain: string;
   websiteDomain: string;
+  apiBasePath: Option.Option<string>;
+  websiteBasePath: Option.Option<string>;
   apiKey: string;
   providers: ProviderInput[];
   hasDashboard: boolean;
   recipe: RECIPE;
+  framework: FRAMEWORK;
 }
 
-export const initWithExpress = (params: InitParam) => {
+export const init = (params: InitParam) => {
   const recipeList = match(params.recipe)
     .with(RECIPE.SOCIAL_LOGIN, () => [
       ThirdParty.init({
@@ -41,8 +49,16 @@ export const initWithExpress = (params: InitParam) => {
       }),
     ])
     .exhaustive();
+
+  const frameworkConf = match(params.framework)
+    .with(FRAMEWORK.NEST, () => ({}))
+    .with(FRAMEWORK.EXPRESS, () => ({
+      framework: 'express',
+    }))
+    .exhaustive();
+
   return supertokens.init({
-    framework: 'express',
+    ...frameworkConf,
     supertokens: {
       // https://try.supertokens.com is for demo purposes. Replace this with the address of your core instance (sign up on supertokens.com), or self host a core.
       connectionURI: pipe(
@@ -59,8 +75,14 @@ export const initWithExpress = (params: InitParam) => {
       appName: params.appName,
       apiDomain: params.apiDomain,
       websiteDomain: params.websiteDomain,
-      apiBasePath: '/auth',
-      websiteBasePath: '/auth',
+      apiBasePath: pipe(
+        params.apiBasePath,
+        Option.getOrElse(() => '/auth'),
+      ),
+      websiteBasePath: pipe(
+        params.websiteBasePath,
+        Option.getOrElse(() => '/auth'),
+      ),
     },
     recipeList: [
       ...recipeList,
