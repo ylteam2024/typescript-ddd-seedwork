@@ -1,36 +1,30 @@
 import { Arr, IOEither, State } from '@logic/fp';
-import { AggregateRoot } from './aggregate-root.base';
 import { DomainEvent } from './event/domain-event.base';
 import { pipe } from 'fp-ts/lib/function';
 import { BaseException } from '@logic/exception.base';
 import { Validation } from './invariant-validation';
+import { Entity } from './entity.base.type';
 
 export interface IEventDispatcher {
   dispatch(event: DomainEvent): IOEither.IOEither<BaseException, void>;
   multiDispatch(events: DomainEvent[]): IOEither.IOEither<BaseException, void>;
 }
 
-export type BehaviorMonad<A extends AggregateRoot<unknown>> = State.State<
-  DomainEvent[],
-  A
->;
+export type BehaviorMonad<A extends Entity> = State.State<DomainEvent[], A>;
 
 const map =
-  <A extends AggregateRoot<unknown>>(f: (a: A) => A) =>
+  <A extends Entity>(f: (a: A) => A) =>
   (fa: BehaviorMonad<A>) =>
     State.map(f)(fa);
 
-const of = <A extends AggregateRoot<unknown>>(
-  aggregateState: A,
-  itsEvent: DomainEvent[],
-) =>
+const of = <A extends Entity>(aggregateState: A, itsEvent: DomainEvent[]) =>
   ((commingEvents: DomainEvent[]) => [
     aggregateState,
     Arr.getMonoid<DomainEvent>().concat(itsEvent, commingEvents),
   ]) as BehaviorMonad<A>;
 
 const chain =
-  <A extends AggregateRoot<unknown>>(f: (a: A) => BehaviorMonad<A>) =>
+  <A extends Entity>(f: (a: A) => BehaviorMonad<A>) =>
   (ma: BehaviorMonad<A>) =>
   (s: DomainEvent[]) => {
     const state = ma(s);
@@ -39,19 +33,12 @@ const chain =
 
 const run =
   (eD: IEventDispatcher) =>
-  <A extends AggregateRoot<unknown>>(
-    behavior: BehaviorMonad<A>,
-    initEvents: DomainEvent[],
-  ) => {
+  <A extends Entity>(behavior: BehaviorMonad<A>, initEvents: DomainEvent[]) => {
     const [aggregate, events] = behavior(initEvents);
     return pipe(eD.multiDispatch(events), IOEither.as(aggregate));
   };
 
-export type AggBehavior<
-  A extends AggregateRoot<unknown>,
-  P,
-  HasParser extends boolean,
-> = (
+export type AggBehavior<A extends Entity, P, HasParser extends boolean> = (
   p: P,
 ) => (
   a: A,

@@ -2,25 +2,27 @@ import { Either, Option, pipe } from '@logic/fp';
 import { apply } from 'fp-ts/lib/function';
 import { BooleanFromString } from 'io-ts-types';
 import {
+  GetProps,
   Parser,
   VOLiken,
   ValueObject,
+  ValueObjectAuFn,
   ValueObjectTrait,
   decodeWithValidationErr,
-  optionizeParser,
   parseDate,
 } from '..';
-import { GetProps } from '@model/domain-model.base';
+import { GenericDomainModelTrait } from '@model/domain-model.base';
+import { optionizeParser } from '@model/parser';
 
 export type Kyc = ValueObject<{
   isVerified: boolean;
   verifiedAt: Option.Option<Date>;
 }>;
 
-const parseProps = (t: KycTrait) => (v: VOLiken<Kyc>) =>
-  t.structParsing({
+const parseProps = (v: VOLiken<Kyc>) =>
+  ValueObjectAuFn.structParsing<Kyc>({
     isVerified: pipe(
-      decodeWithValidationErr<boolean>,
+      decodeWithValidationErr.typeFirst<boolean>,
       apply(BooleanFromString),
       apply({
         code: 'INVALID_VERIFIED_FLAG',
@@ -33,57 +35,67 @@ const parseProps = (t: KycTrait) => (v: VOLiken<Kyc>) =>
     ),
   });
 
-class KycTrait extends ValueObjectTrait<Kyc> {
-  parse = (v: unknown) =>
-    pipe(this.factory, apply(parseProps(this)), apply('kyc'), apply(v));
-  new = this.parse;
+const parseKyc = (v: unknown) =>
+  pipe(
+    ValueObjectAuFn.construct<Kyc>,
+    apply(parseProps),
+    apply('kyc'),
+    apply(v),
+  );
 
-  isVerified = this.simpleQuery<boolean>('isVerified');
+interface KycTrait extends ValueObjectTrait<Kyc> {
+  isVerified: (vo: Kyc) => boolean;
 }
 
-export const kycTrait = new KycTrait();
+const KycTrait: KycTrait = {
+  parse: parseKyc,
+  new: parseKyc,
+  isVerified: GenericDomainModelTrait.simpleQuery<Kyc, boolean>('isVerified'),
+};
+
+// PRIMITIVE KYC
 
 export type WithKycPrim<T> = ValueObject<GetProps<Kyc> & { kycInfo: T }>;
 
-const parseWithKycpropsForPrim =
-  <T>(kycTrait: KycTrait) =>
-  (voParser: Parser<T>) =>
-  (v: VOLiken<WithKycPrim<T>>) => {
+type ExtractKycInfoType<WKP> = WKP extends WithKycPrim<infer T> ? T : never;
+
+const parseWithKycpropsForPrim = <T>(voParser: Parser<T>) =>
+  ((v: VOLiken<WithKycPrim<T>>) => {
     return pipe(
       v,
-      kycTrait.parse,
+      KycTrait.parse,
       Either.bindTo('kyc'),
       Either.bind('kycInfo', () => voParser(v)),
       Either.map(({ kyc, kycInfo }) => ({
-        ...kycTrait.unpack(kyc),
+        ...GenericDomainModelTrait.unpack(kyc),
         kycInfo,
       })),
     );
-  };
+  }) as Parser<WithKycPrim<T>['props']>;
 
-class KycPrimTrait<T> extends ValueObjectTrait<WithKycPrim<T>> {
-  tParser: Parser<T>;
-  voTag: string;
+interface KycPrimTrait<T extends WithKycPrim<any>>
+  extends ValueObjectTrait<T> {}
 
-  constructor(tParser: Parser<T>, tag: string) {
-    super();
-    this.tParser = tParser;
-    this.voTag = tag;
-  }
-
-  parse = (v: VOLiken<WithKycPrim<T>>) =>
+const parseWithKycPrim =
+  <WP extends WithKycPrim<unknown>>(
+    tParser: Parser<ExtractKycInfoType<WP>>,
+    voTag: string,
+  ) =>
+  (v: VOLiken<WP>) =>
     pipe(
-      this.factory,
-      apply(parseWithKycpropsForPrim<T>(kycTrait)(this.tParser)),
-      apply(this.voTag),
+      ValueObjectAuFn.construct<WP>,
+      apply(parseWithKycpropsForPrim<ExtractKycInfoType<WP>>(tParser)),
+      apply(voTag),
       apply(v),
     );
-  new = this.parse;
-}
 
 export const getKycPrimTrait =
-  <T>(tParser: Parser<T>) =>
+  <WP extends WithKycPrim<unknown>>(tParser: Parser<ExtractKycInfoType<WP>>) =>
   (tag: string) => {
-    const kycPrimTrait = new KycPrimTrait<T>(tParser, tag);
+    const parse = parseWithKycPrim<WP>(tParser, tag);
+    const kycPrimTrait: KycPrimTrait<WP> = {
+      parse,
+      new: parse,
+    };
     return kycPrimTrait;
   };

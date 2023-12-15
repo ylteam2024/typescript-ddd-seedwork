@@ -63,7 +63,7 @@ export class RedisKeyValueRepository extends AbstractKeyValueRepository {
       throw error;
     }
   }
-  public async get(key: string): Promise<string | number> {
+  public async get(key: string): Promise<string | number | null> {
     try {
       return await this.redisClient.get(this.finalizeKey(key));
     } catch (error) {

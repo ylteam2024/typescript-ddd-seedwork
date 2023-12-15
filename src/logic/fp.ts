@@ -13,7 +13,7 @@ import * as IOEither from 'fp-ts/IOEither';
 import * as Arr from 'fp-ts/Array';
 import * as NEA from 'fp-ts/NonEmptyArray';
 import * as NUM from 'fp-ts/number';
-import * as ReadonlyRecord from 'fp-ts/ReadonlyRecord';
+import * as RRecord from 'fp-ts/ReadonlyRecord';
 import * as io from 'io-ts';
 import * as IoTypes from 'io-ts-types';
 import { pipe, flow } from 'fp-ts/lib/function';
@@ -35,7 +35,7 @@ export {
   NEA,
   IOEither,
   State,
-  ReadonlyRecord,
+  RRecord,
   Record,
   IoTypes,
   Apply,

@@ -1,10 +1,5 @@
-import {
-  Liken,
-  Parser,
-  ParsingInput,
-  Validation,
-  structSummarizerParsing,
-} from './invariant-validation';
+import { Parser, ParsingInput, Validation } from './invariant-validation';
+import { structSummarizerParsing } from './parser';
 import {
   Arr,
   Either,
@@ -13,55 +8,41 @@ import {
   NEA,
   Optics,
   Option,
-  ReadonlyRecord,
+  RRecord,
   S,
   io,
 } from '@logic/fp';
 import { apply, pipe } from 'fp-ts/lib/function';
 import { DomainEvent } from './event';
-import { BehaviorMonadTrait } from './domain-behavior.monad';
+import { BehaviorMonadTrait } from './domain-model-behavior.monad';
 import { BaseExceptionBhv } from '@logic/exception.base';
 import { shouldBeArray } from '@logic/parser';
-import { Brand } from '@type_util/index';
-import { PrimitiveVOTrait } from './value-object.base';
-import { DomainModel, DomainModelTrait } from './domain-model.base';
+import {
+  GenericDomainModelTrait,
+  DomainModelTrait,
+  IsEqual,
+} from './domain-model.base';
 import { FirstArgumentType } from '@type_util/function';
-
-export type Identifier = Brand<string, 'Identifier'>;
-
-export const parseId: Parser<Identifier> = (v: unknown) => {
-  const isId = (v: unknown): v is Identifier =>
-    typeof v === 'string' && v.length > 0;
-  return Either.fromPredicate(isId, () =>
-    BaseExceptionBhv.construct('invalid identifier', 'INVALID_IDENTIFIER'),
-  )(v);
-};
-
-export const IdentifierTrait: PrimitiveVOTrait<Identifier> = {
-  parse: parseId,
-  new: parseId,
-};
-
-export interface Entity<
-  T extends ReadonlyRecord.ReadonlyRecord<string, any> = unknown,
-> extends DomainModel<T> {
-  readonly props: T;
-  readonly id: Identifier;
-  readonly createdAt: Date;
-  readonly updatedAt: Option.Option<Date>;
-}
-
-type EntityCommonProps = Omit<Entity, 'props'>;
-
-export type EntityLiken<T extends Entity> = Liken<
-  Omit<EntityCommonProps, '_tag'>
-> & {
-  [K in keyof T['props']]: T['props'][K] extends Entity
-    ? EntityLiken<T['props'][K]>
-    : T['props'][K] extends Array<unknown> & { [key: number]: Entity }
-    ? EntityLiken<T['props'][K][0]>[]
-    : Liken<T['props'][K]>;
-};
+import { Identifier, parseId } from 'src/typeclasses/obj-with-id';
+import { decodeWithValidationErr } from './io-related-auxiliry-func';
+import {
+  Entity,
+  EntityCommonProps,
+  EntityInvariantParser,
+  SimpleAdder,
+  SimpleRemover,
+  SimpleSeter,
+} from './entity.base.type';
+import {
+  getCreatedAt,
+  getUpdatedAt,
+  updatedAtLen,
+} from 'src/typeclasses/withtime';
+import {
+  KeyProps,
+  SimpleQuery,
+  SimpleQueryOpt,
+} from './domain-model.base.type';
 
 const construct =
   <T extends Entity>(parser: Parser<T['props']>) =>
@@ -79,7 +60,9 @@ const construct =
     const parserMetaLike = (v: unknown) =>
       pipe(
         v,
-        MetaLikeParser.decode,
+        decodeWithValidationErr.typeFirst(MetaLikeParser)({
+          code: 'FAIL_STRUCTURE',
+        }),
         Either.flatMap((metaLike) => {
           return structSummarizerParsing<Omit<EntityCommonProps, '_tag'>>({
             id: parseId(metaLike.id),
@@ -101,7 +84,7 @@ const construct =
             createdAt: meta.createdAt,
             updatedAt: meta.updatedAt,
             props,
-          } as T),
+          }) as T,
       ),
     );
   };
@@ -117,29 +100,15 @@ const setId =
     return pipe(state, Optics.replace(idLens<T>())(id));
   };
 
-const entityMetaLens = <T extends Entity>(key: keyof EntityCommonProps) =>
-  Optics.id<T>().at(key);
-
 const entityPropsLen = <A extends Entity>() =>
   Optics.id<A>().at('props') as Optics.Lens<A, A['props']>;
 
-const createdAt = <T extends Entity>(state: T) =>
-  pipe(state, Optics.get(entityMetaLens('createdAt'))) as Date;
+const createdAt = <T extends Entity>(state: T) => getCreatedAt(state);
 
-const updatedAt = <T extends Entity>(state: T) =>
-  pipe(state, Optics.get(entityMetaLens('updatedAt')));
+const updatedAt = <T extends Entity>(state: T) => getUpdatedAt(state);
 
 const markUpdate = <T extends Entity>(state: T) =>
-  pipe(state, Optics.replace(entityMetaLens('updatedAt'))(new Date()));
-
-export type Query<T extends Entity, A> = (entity: T) => A;
-export type QueryOpt<T extends Entity, A> = (entity: T) => Option.Option<A>;
-
-export type InvariantParser<
-  T extends Entity,
-  IsPropAttr extends boolean,
-  V extends IsPropAttr extends true ? T['props'][keyof T['props']] : unknown,
-> = (entity: T) => Parser<V>;
+  pipe(state, Optics.replace(updatedAtLen<T>())(Option.some(new Date())));
 
 export const identityInvariantParser =
   <T extends Entity, V extends T['props'][keyof T['props']]>() =>
@@ -150,7 +119,13 @@ const setter =
   <T extends Entity, V extends T['props'][keyof T['props']]>(
     attributeName: keyof T['props'],
   ) =>
-  (validator: InvariantParser<T, true, V>, events: DomainEvent[]) =>
+  ({
+    validator,
+    events,
+  }: {
+    validator: EntityInvariantParser<T, true, V>;
+    events: DomainEvent[];
+  }) =>
   (newV: unknown) =>
   (entity: T) => {
     return pipe(
@@ -158,7 +133,13 @@ const setter =
       validator(entity),
       Either.map((v) =>
         pipe(
-          Optics.replace(entityPropsLen<T>().at(attributeName)),
+          Optics.replace(
+            entityPropsLen<T>().at(attributeName) as Optics.PolySetter<
+              T,
+              T,
+              T['props'][keyof T['props']]
+            >,
+          ),
           apply(v),
           apply(entity),
           (updatedEntity: T) => BehaviorMonadTrait.of(updatedEntity, events),
@@ -175,7 +156,7 @@ const adder =
     events,
   }: {
     E: Eq.Eq<A>;
-    validator: InvariantParser<T, false, A>;
+    validator: EntityInvariantParser<T, false, A>;
     events: DomainEvent[];
   }) =>
   (newItem: A) =>
@@ -210,10 +191,10 @@ const adder =
               ...array,
               item,
             ] as T['props'][keyof T['props']])(entity) as T,
-          (e: Error) =>
+          (e: unknown) =>
             NEA.of(
               BaseExceptionBhv.construct(
-                e.message,
+                (e as Error).message,
                 'ADDER_OPTICS_CHANGE_ERROR',
               ),
             ),
@@ -233,7 +214,7 @@ const remover =
     events,
   }: {
     E: Eq.Eq<A>;
-    validator: InvariantParser<T, false, A>;
+    validator: EntityInvariantParser<T, false, A>;
     events: DomainEvent[];
   }) =>
   (removedItem: A) =>
@@ -241,19 +222,21 @@ const remover =
     const lens = entityPropsLen<T>().at(attributeName);
     const getAttr = Optics.get(lens);
     const validating = () => pipe(validator, apply(entity), apply(removedItem));
-    const mustExist = (arr: A[]) => (checkedItem: A) =>
-      pipe(
-        arr,
-        Arr.findIndex((a) => E.equals(a, checkedItem)),
-        Either.fromOption(() =>
-          NEA.of(
-            BaseExceptionBhv.construct(
-              'Item does not existed',
-              'ITEM_NOT_EXISTED',
+    const mustExist =
+      (arr: A[]) =>
+      (checkedItem: A): Validation<number> =>
+        pipe(
+          arr,
+          Arr.findIndex((a) => E.equals(a, checkedItem)),
+          Either.fromOption(() =>
+            NEA.of(
+              BaseExceptionBhv.construct(
+                'Item does not existed',
+                'ITEM_NOT_EXISTED',
+              ),
             ),
           ),
-        ),
-      );
+        );
     return pipe(
       entity,
       getAttr,
@@ -275,10 +258,10 @@ const remover =
             Optics.replace(lens)(updatedArray as T['props'][keyof T['props']])(
               entity,
             ) as T,
-          (e: Error) =>
+          (e: unknown) =>
             NEA.of(
               BaseExceptionBhv.construct(
-                e.message,
+                (e as Error).message,
                 'ADDER_OPTICS_CHANGE_ERROR',
               ),
             ),
@@ -290,7 +273,7 @@ const remover =
     );
   };
 
-export const getEntityEq = <T extends Entity<unknown>>() =>
+export const getEntityEq = <T extends Entity>() =>
   Eq.contramap((entity: T) => ({
     tag: entity._tag,
     id: entity.id,
@@ -304,41 +287,72 @@ export const getEntityEq = <T extends Entity<unknown>>() =>
 const isEqual = <T extends Entity>(entityLeft: T, entityRight: T) =>
   getEntityEq<T>().equals(entityLeft, entityRight);
 
-const getSnapshot = <T>(state: Entity<T>) =>
-  ReadonlyRecord.fromRecord({
+const getSnapshot = <T extends RRecord.ReadonlyRecord<string, any>>(
+  state: Entity<T>,
+) =>
+  RRecord.fromRecord({
     createdAt: state.createdAt,
     updatedAt: state.createdAt,
     id: state.id,
     ...state.props,
   });
 
-export abstract class EntityTrait<
-  E extends Entity,
-> extends DomainModelTrait<E> {
-  abstract parse: Parser<E>;
-  abstract new: (params: unknown) => Validation<E>;
-  factory = construct<E>;
-  id = id<E>;
-  setId = setId<E>;
-  createdAt = createdAt<E>;
-  updatedAt = updatedAt<E>;
-  markUpdate = markUpdate<E>;
-  getSnapshot = getSnapshot<E>;
-  isEqual = isEqual<E>;
-  remover = <V>(a: FirstArgumentType<typeof remover<E, V>>) => remover<E, V>(a);
-  adder = <V>(a: FirstArgumentType<typeof adder<E, V>>) => adder<E, V>(a);
-  setter = <V extends E['props'][keyof E['props']]>(
-    a: FirstArgumentType<typeof setter<E, V>>,
-  ) => setter<E, V>(a);
-  propsLen = entityPropsLen<E>;
-  structParsingProps = structParsingProps<E>;
+export interface EntityTrait<E extends Entity> extends DomainModelTrait<E> {}
+
+export interface IEntityGenericTrait<
+  T extends Entity = Entity<RRecord.ReadonlyRecord<string, any>>,
+> {
+  factory: <TS extends Entity = T>(
+    propsParser: Parser<TS['props']>,
+  ) => (tag: string) => Parser<TS>;
+  id: <TS extends Entity = T>(t: TS) => Identifier;
+  setId: <TS extends Entity = T>(id: Identifier) => (domainState: TS) => TS;
+  createdAt: <TS extends Entity = T>(
+    t: TS,
+  ) => ReturnType<SimpleQuery<TS, Date>>;
+  updatedAt: <TS extends Entity = T>(
+    t: TS,
+  ) => ReturnType<SimpleQueryOpt<TS, Date>>;
+  markUpdate: <TS extends Entity = T>(state: TS) => TS;
+  getSnapshot: <TS extends Entity = T>(
+    state: TS,
+  ) => RRecord.ReadonlyRecord<string, any>;
+  isEqual: IsEqual<Entity>;
+  simpleQuery: <TS extends Entity = T, R = any>(
+    key: KeyProps<TS>,
+  ) => (t: TS) => R;
+  simpleQueryOpt: <TS extends Entity = T, R = any>(
+    key: KeyProps<TS>,
+  ) => (t: TS) => Option.Option<R>;
+  remover: <E extends Entity = T, V = any>(
+    key: KeyProps<E>,
+  ) => (config: {
+    E: Eq.Eq<V>;
+    validator: EntityInvariantParser<E, false, V>;
+    events: DomainEvent[];
+  }) => SimpleRemover<E, V>;
+  adder: <E extends Entity = T, V = any>(
+    key: KeyProps<E>,
+  ) => (config: {
+    E: Eq.Eq<V>;
+    validator: EntityInvariantParser<E, false, V>;
+    events: DomainEvent[];
+  }) => SimpleAdder<E, V>;
+  setter: <E extends Entity = T, V extends T['props'][keyof T['props']] = any>(
+    a: KeyProps<T>,
+  ) => (config: {
+    validator: EntityInvariantParser<E, false, V>;
+    events: DomainEvent[];
+  }) => SimpleSeter<E, V>;
+  propsLen: <E extends Entity = T>() => Optics.Lens<E, E['props']>;
+  structParsingProps: <E extends Entity = T>(
+    raw: ParsingInput<E['props']>,
+  ) => Validation<E['props']>;
+  getTag: (dV: Entity) => string;
+  unpack: (dV: Entity) => RRecord.ReadonlyRecord<string, any>;
 }
 
-export const structParsingProps = <ET extends Entity>(
-  raw: ParsingInput<ET['props']>,
-) => structSummarizerParsing<ET['props']>(raw);
-
-export const getGenericTrait = <E extends Entity>() => ({
+export const getGenericTraitForType = <E extends Entity>() => ({
   factory: construct<E>,
   id: id<E>,
   setId: setId<E>,
@@ -347,18 +361,37 @@ export const getGenericTrait = <E extends Entity>() => ({
   markUpdate: markUpdate<E>,
   getSnapshot: getSnapshot<E>,
   isEqual: isEqual<E>,
+  simpleQuery: <R>(key: keyof E['props']) =>
+    GenericDomainModelTrait.simpleQuery<E, R>(key),
+  simpleQueryOpt: <R>(key: keyof E['props']) =>
+    GenericDomainModelTrait.simpleQueryOpt<E, R>(key),
   remover: <V>(a: FirstArgumentType<typeof remover<E, V>>) => remover<E, V>(a),
   adder: <V>(a: FirstArgumentType<typeof adder<E, V>>) => adder<E, V>(a),
   setter: <V extends E['props'][keyof E['props']]>(
     a: FirstArgumentType<typeof setter<E, V>>,
   ) => setter<E, V>(a),
   propsLen: entityPropsLen<E>,
-  structParsingProps: structParsingProps<E>,
+  structParsingProps: GenericDomainModelTrait.structParsingProps<E>,
+  getTag: GenericDomainModelTrait.getTag,
+  unpack: GenericDomainModelTrait.unpack,
 });
 
-// This is the type of the data structure that the lens will be operating on.
-interface Whole {
-  readonly a: string;
-  readonly b: number;
-  readonly c: boolean;
-}
+export const EntityGenericTrait: IEntityGenericTrait = {
+  factory: construct,
+  id,
+  setId,
+  createdAt,
+  updatedAt,
+  markUpdate,
+  getSnapshot,
+  isEqual,
+  remover,
+  adder,
+  setter,
+  simpleQuery: GenericDomainModelTrait.simpleQuery,
+  simpleQueryOpt: GenericDomainModelTrait.simpleQueryOpt,
+  propsLen: entityPropsLen,
+  structParsingProps: GenericDomainModelTrait.structParsingProps,
+  getTag: GenericDomainModelTrait.getTag,
+  unpack: GenericDomainModelTrait.unpack,
+};

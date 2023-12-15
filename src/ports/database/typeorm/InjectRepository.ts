@@ -8,7 +8,7 @@ export const injectRepositoryFactory =
       propertyKey: string,
       descriptor: PropertyDescriptor,
     ) => {
-      const consWithRepository = (...params) => {
+      const consWithRepository = (...params: any[]) => {
         return descriptor.value.call(this, ...params, repository);
       };
       descriptor.value = consWithRepository;

@@ -9,8 +9,8 @@ export class BaseException extends Error {
   constructor(
     message: string | string[],
     code: string,
-    loc = [],
-    instruction = [],
+    loc: string[] = [],
+    instruction: string[] = [],
     delimiter = '__',
   ) {
     super(Array.isArray(message) ? message.join(delimiter) : message);

@@ -37,7 +37,7 @@ export class JsonMediaReader {
   }
 
   stringValue(path: string) {
-    return this.getValue(path) ? this.getValue(path).toString() : null;
+    return this.getValue(path) ? String(this.getValue(path)) : null;
   }
 
   booleanValue(path: string) {
@@ -46,9 +46,7 @@ export class JsonMediaReader {
   }
 
   dateValue(path: string) {
-    return this.getValue(path)
-      ? Date.parse(this.getValue(path).toString())
-      : null;
+    return this.getValue(path) ? Date.parse(String(this.getValue(path))) : null;
   }
 
   numberValue(path: string) {

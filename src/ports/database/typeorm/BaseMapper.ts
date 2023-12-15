@@ -5,10 +5,11 @@ import { BaseExceptionBhv } from '@logic/exception.base';
 import { Either, NEA, pipe, TE } from '@logic/fp';
 import { Newtype } from 'newtype-ts';
 import { AggregateRoot } from '@model/aggregate-root.base';
-import { getGenericTrait, Identifier } from '@model/entity.base';
+import { getGenericTraitForType } from '@model/entity.base';
 import { Validation } from '@model/invariant-validation';
 import { TypeormEntityBase } from './BaseEntity';
 import { validate } from 'uuid';
+import { Identifier } from 'src/typeclasses/obj-with-id';
 
 export type OrmEntityProps<OrmEntity> = Omit<
   OrmEntity,
@@ -50,7 +51,7 @@ export interface Mapper<
 
   toOrmEntity(
     entity: Entity,
-    extraInfo: Record<string, any>,
+    toOrmId: IParseOrmId<UUIDTypeOrm>,
   ): TE.TaskEither<unknown, OrmEntity>;
 }
 
@@ -92,13 +93,13 @@ export abstract class OrmMapper<
     entity: Entity,
     toOrmId: IParseOrmId<UUIDTypeOrm> = defaultToOrmId,
   ): TE.TaskEither<unknown, OrmEntity> {
-    const entityGenericTrait = getGenericTrait<Entity>();
+    const entityGenericTrait = getGenericTraitForType<Entity>();
     const createdAt = entityGenericTrait.createdAt(entity);
     const updatedAt = entityGenericTrait.updatedAt(entity);
     return pipe(
       TE.Do,
       TE.bind('props', () => this.toOrmProps(entity)),
-      TE.bind('id', () =>
+      TE.bindW('id', () =>
         TE.fromEither(toOrmId(entityGenericTrait.id(entity))),
       ),
       TE.map(

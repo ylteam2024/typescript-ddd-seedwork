@@ -6,7 +6,7 @@ import { Mixed, Props } from 'io-ts';
 
 export type LikeStruct = {
   type: unknown;
-  decode: ReturnType<typeof decodeWithValidationErr>;
+  decode: ReturnType<typeof decodeWithValidationErr.typeFirst>;
 };
 
 export const makeLikeStruct =
@@ -35,36 +35,46 @@ export const makeLikeStruct =
       : pipe(ioProps, simplify, io.type);
     return {
       type: typeof originType,
-      decode: decodeWithValidationErr(simpleType),
+      decode: decodeWithValidationErr.typeFirst(simpleType),
     } as LikeStruct;
   };
 
-export function decodeWithValidationErr<T>(
+const decodeWithValidationErrMain = <T>(
+  exOps: { code: string },
   ioType: io.Type<T, unknown, unknown>,
-) {
-  return (exOps: { code: string }) => {
-    return flow(
-      ioType.decode,
-      Either.mapLeft((e) =>
-        pipe(
-          NEA.fromArray(
-            pipe(
-              e,
-              A.map(() =>
-                BaseExceptionBhv.construct(
-                  PathReporter.report(Either.left(e)),
-                  exOps.code,
-                ),
+) => {
+  return flow(
+    ioType.decode,
+    Either.mapLeft((e) =>
+      pipe(
+        NEA.fromArray(
+          pipe(
+            e,
+            A.map(() =>
+              BaseExceptionBhv.construct(
+                PathReporter.report(Either.left(e)),
+                exOps.code,
               ),
             ),
           ),
-          Option.getOrElse(() =>
-            NEA.of(
-              BaseExceptionBhv.construct('', 'EMPTY_EXCEPTION_FROM_IO_DECODE'),
-            ),
+        ),
+        Option.getOrElse(() =>
+          NEA.of(
+            BaseExceptionBhv.construct('', 'EMPTY_EXCEPTION_FROM_IO_DECODE'),
           ),
         ),
       ),
-    );
-  };
-}
+    ),
+  );
+};
+
+export const decodeWithValidationErr = {
+  codeFirst:
+    <T>(exOps: { code: string }) =>
+    (ioType: io.Type<T, unknown>) =>
+      decodeWithValidationErrMain<T>(exOps, ioType),
+  typeFirst:
+    <T>(ioType: io.Type<T, unknown>) =>
+    (exOps: { code: string }) =>
+      decodeWithValidationErrMain<T>(exOps, ioType),
+};

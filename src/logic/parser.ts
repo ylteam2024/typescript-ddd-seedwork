@@ -1,28 +1,44 @@
 import { Validation } from '@model/invariant-validation';
 import { BaseException, BaseExceptionBhv } from './exception.base';
-import { Either, NEA, pipe } from './fp';
+import { Either, NEA, pipe, Option } from './fp';
 import { isArray } from 'util';
+import { apply } from 'fp-ts/lib/function';
 
 export interface BasicAssertParam {
-  message?: string;
-  exception?: BaseException;
-  loc?: string[];
-  code?: string;
-  isWithKey?: boolean;
-  key?: string;
+  message: string;
+  exception: Option.Option<BaseException>;
+  loc: string[];
+  code: Option.Option<string>;
+  isWithKey: boolean;
+  key: string;
 }
 
 export function constructException(
-  aMessage?: string,
-  exception?: BaseException,
-  loc?: string[],
-  code?: string,
+  aMessage: string,
+  exception: Option.Option<BaseException> = Option.none,
+  loc: string[] = [],
+  code: Option.Option<string> = Option.none,
 ) {
-  return NEA.of(exception || BaseExceptionBhv.construct(aMessage, code, loc));
+  return NEA.of(
+    pipe(
+      Option.getOrElse<BaseException>,
+      apply(() =>
+        BaseExceptionBhv.construct(
+          aMessage,
+          pipe(
+            code,
+            Option.getOrElse(() => 'NOT_WORK'),
+          ),
+          loc,
+        ),
+      ),
+      apply(exception),
+    ),
+  );
 }
 export function assertArgumentNotEmpty({
   aString,
-  message: aMessage,
+  message,
   exception,
   loc,
   code,
@@ -32,14 +48,14 @@ export function assertArgumentNotEmpty({
   return pipe(
     aString,
     Either.fromPredicate(isEmpty, () =>
-      constructException(aMessage, exception, loc, code),
+      constructException(message, exception, loc, code),
     ),
   );
 }
 
 export function assertArgumentNotNull({
   aValue,
-  message: aMessage,
+  message,
   exception,
   loc,
   code,
@@ -48,7 +64,7 @@ export function assertArgumentNotNull({
   return pipe(
     aValue,
     Either.fromPredicate(isNull, () =>
-      constructException(aMessage, exception, loc, code),
+      constructException(message, exception, loc, code),
     ),
   );
 }
@@ -111,7 +127,7 @@ export function assertLargerThanOrEqual({
 
 export const shouldBeArray =
   <A>({ code, message }: { code: string; message: string }) =>
-  (v: unknown) =>
+  (v: unknown): Validation<A[]> =>
     pipe(
       v,
       Either.fromPredicate(isArray, () =>

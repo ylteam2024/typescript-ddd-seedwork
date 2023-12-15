@@ -1,9 +1,10 @@
 export abstract class AbstractKeyValueRepository {
-  protected _prefix: string;
+  protected _prefix: string = '';
 
   constructor(prefix?: string) {
-    this.setPrefix(prefix);
+    this.setPrefix(prefix || '');
   }
+
   setPrefix(prefix: string) {
     this._prefix = prefix;
   }
@@ -22,5 +23,5 @@ export abstract class AbstractKeyValueRepository {
     expired_seconds?: number,
   ): Promise<void>;
 
-  public abstract get(key: string): Promise<string | number>;
+  public abstract get(key: string): Promise<string | number | null>;
 }

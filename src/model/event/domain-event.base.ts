@@ -1,5 +1,5 @@
-import { Identifier } from '@model/entity.base';
 import { randomUUID } from 'crypto';
+import { Identifier } from 'src/typeclasses/obj-with-id';
 
 type DomainEventMetadata = {
   /** Timestamp when this domain event occurred */
@@ -44,7 +44,7 @@ const construct = ({
       timestamp: new Date().getTime(),
       correlationId: randomUUID(),
     },
-  } as DomainEvent);
+  }) as DomainEvent;
 
 export const DomainEventTrait = {
   construct,

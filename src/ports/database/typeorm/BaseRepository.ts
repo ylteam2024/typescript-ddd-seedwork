@@ -21,7 +21,8 @@ import {
 } from '@logic/exception.base';
 import { identity } from 'ramda';
 import { AggregateRoot } from '@model/aggregate-root.base';
-import { getGenericTrait, Identifier } from '@model/entity.base';
+import { getGenericTraitForType } from '@model/entity.base';
+import { Identifier } from 'src/typeclasses/obj-with-id';
 
 export type WhereCondition<OrmEntity> =
   | FindOptionsWhere<OrmEntity>[]
@@ -30,11 +31,11 @@ export type WhereCondition<OrmEntity> =
   | string;
 
 export abstract class TypeormRepositoryBase<
-  Entity extends AggregateRoot<unknown>,
+  Entity extends AggregateRoot,
   OrmEntity extends TypeormEntityBase,
 > implements RepositoryPort<Entity>
 {
-  entityTrait = getGenericTrait<Entity>();
+  entityTrait = getGenericTraitForType<Entity>();
   protected constructor(
     protected readonly repository: Repository<OrmEntity>,
     protected readonly mapper: OrmMapper<Identifier, Entity, OrmEntity>,

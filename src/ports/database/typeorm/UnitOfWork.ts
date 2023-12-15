@@ -1,4 +1,10 @@
-import { DataSource, EntityTarget, QueryRunner, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityTarget,
+  ObjectLiteral,
+  QueryRunner,
+  Repository,
+} from 'typeorm';
 import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
 import { Err, Result } from 'oxide.ts/dist';
 import { Logger } from '@ports/Logger';
@@ -34,7 +40,7 @@ export class TypeormUnitOfWork implements UnitOfWorkPort {
     return queryRunner;
   }
 
-  getOrmRepository<Entity>(
+  getOrmRepository<Entity extends ObjectLiteral>(
     entity: EntityTarget<Entity>,
     correlationId: string,
   ): Repository<Entity> {

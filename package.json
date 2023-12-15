@@ -1,6 +1,6 @@
 {
   "name": "yl-ddd-ts",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Node typescript seedwork",
   "main": "dist/src/index.js",
   "author": "tuancaurao <tuancr.pt@gmail.com>",
@@ -31,13 +31,12 @@
     "./aim": "./dist/src/aim/index.js"
   },
   "dependencies": {
-    "@fp-ts/optic": "0.9.0",
-    "@types/amqplib": "^0.10.1",
-    "@types/jest": "^29.5.4",
+    "@fp-ts/optic": "0.19.0",
     "amqp-connection-manager": "^4.1.11",
     "amqplib": "^0.10.3",
     "decimal.js": "^10.4.3",
     "dotenv": "^16.0.2",
+    "effect": "^2.0.0-next.60",
     "fp-ts": "^2.16.1",
     "got": "11.8.3",
     "helmet": "^6.0.0",
@@ -67,6 +66,7 @@
     "registry": "https://registry.yarnpkg.com"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.1",
     "@types/got": "^9.6.12",
     "@types/jest": "^29.5.4",
     "@types/morgan": "^1.9.3",
@@ -78,9 +78,9 @@
     "@typescript-eslint/parser": "^6.7.0",
     "eslint": "^7.30.0",
     "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-prettier": "^3.4.0",
+    "eslint-plugin-prettier": "^5.0.0",
     "jest": "^29.4.3",
-    "prettier": "^2.3.2",
+    "prettier": "3.1.1",
     "redis-mock": "^0.56.3",
     "rimraf": "^4.1.2",
     "ts-jest": "^29.0.5",
@@ -89,5 +89,8 @@
     "tsconfig-paths": "^4.1.0",
     "typescript": "^5.2.2",
     "typescript-transform-paths": "^3.4.6"
+  },
+  "peerDependencies": {
+    "@fp-ts/optic": "^0.20.0"
   }
 }

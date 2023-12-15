@@ -6,9 +6,8 @@
 */
 
 import { BaseException } from '@logic/exception.base';
-import { TE, Option } from '@logic/fp';
-import { Identifier } from '@model/entity.base';
-import { BaseEntity } from 'typeorm';
+import { TE } from '@logic/fp';
+import { Identifier } from 'src/typeclasses/obj-with-id';
 
 export type QueryParams = any;
 

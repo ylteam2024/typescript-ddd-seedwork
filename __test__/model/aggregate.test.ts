@@ -3,8 +3,8 @@ import { apply } from 'fp-ts/lib/function';
 import { Arr, S } from '@logic/fp';
 import {
   AggBehavior,
-  AggregateRoot,
   BehaviorMonadTrait,
+  AggregateRoot,
   DomainEventTrait,
   Either,
   Entity,
@@ -19,26 +19,31 @@ import {
   parseNumber,
   parseArray,
   getEntityEq,
+  getGenericTraitForType,
+  EntityGenericTrait,
 } from 'src';
 import { AggregateLiken, AggregateTrait } from '@model/aggregate-root.base';
 import { omit } from 'ramda';
 
 type ExampleEntity = Entity<{ a: string }>;
 
-class ExampleEntityTrait extends EntityTrait<ExampleEntity> {
-  parse = parseExampleEntity;
-  new = parseExampleEntity;
-}
-
-const exampleEntityTrait = new ExampleEntityTrait();
+const genericEntityTraitForExampleEntity =
+  getGenericTraitForType<ExampleEntity>();
 
 const parseExampleEntityProps = (v: EntityLiken<ExampleEntity>) =>
-  exampleEntityTrait.structParsingProps({
+  genericEntityTraitForExampleEntity.structParsingProps({
     a: Either.right(String(v.a)),
   });
 
 const parseExampleEntity = (v: EntityLiken<ExampleEntity>) =>
-  exampleEntityTrait.factory(parseExampleEntityProps)('exampleEntity')(v);
+  genericEntityTraitForExampleEntity.factory(parseExampleEntityProps)(
+    'exampleEntity',
+  )(v);
+
+const ExampleEntityTrait: EntityTrait<ExampleEntity> = {
+  parse: parseExampleEntity,
+  new: parseExampleEntity,
+};
 
 const constructExampleEntityProps = (id: string) => ({
   id,
@@ -56,8 +61,10 @@ type ExampleAProps = {
 
 type ExampleA = AggregateRoot<ExampleAProps>;
 
+const GenericEntityTraitForExampleA = getGenericTraitForType<ExampleA>();
+
 const parseExampleAProps = (v: AggregateLiken<ExampleA>) =>
-  exampleATrait.structParsingProps({
+  GenericEntityTraitForExampleA.structParsingProps({
     attr1: parseString(v.attr1),
     attr2: parseNumber(v.attr2),
     attrArrayPrimitive: pipe(
@@ -67,19 +74,17 @@ const parseExampleAProps = (v: AggregateLiken<ExampleA>) =>
     ),
     attrArrayEntities: pipe(
       parseArray<ExampleEntity>,
-      apply(exampleEntityTrait.parse),
+      apply(ExampleEntityTrait.parse),
       apply(v.attrArrayEntities),
     ),
   });
 const parseExample = (v: AggregateLiken<ExampleA>) =>
-  exampleATrait.factory(parseExampleAProps)('exampleA')(v);
+  GenericEntityTraitForExampleA.factory(parseExampleAProps)('exampleA')(v);
 
-class ExampleATrait extends AggregateTrait<ExampleA> {
-  parse = parseExample;
-  new = parseExample;
-}
-
-const exampleATrait = new ExampleATrait();
+const ExampleATrait: AggregateTrait<ExampleA> = {
+  parse: parseExample,
+  new: parseExample,
+};
 
 const constructA = (
   attr1: string,
@@ -87,7 +92,7 @@ const constructA = (
   attrArrayPrimitive: string[] = [],
   attrArrayEntities: EntityLiken<ExampleEntity>[] = [],
 ) => {
-  return exampleATrait.parse({
+  return ExampleATrait.parse({
     attr1,
     attr2,
     attrArrayEntities,
@@ -102,7 +107,7 @@ describe('Test Aggregate', () => {
   it('test behavior', () => {
     const events = (a: ExampleA) => [
       DomainEventTrait.construct({
-        aggregateId: exampleATrait.id(a),
+        aggregateId: GenericEntityTraitForExampleA.id(a),
         aggregateType: 'exampleA',
         name: 'EVENT_1',
       }),
@@ -111,7 +116,9 @@ describe('Test Aggregate', () => {
       () => (a: ExampleA) => {
         return pipe(
           a,
-          Optics.replace(exampleATrait.propsLen().at('attr1'))('attr1_updated'),
+          Optics.replace<ExampleA, ExampleA, string>(
+            GenericEntityTraitForExampleA.propsLen().at('attr1'),
+          )('attr1_updated'),
           (updatedA: ExampleA) => BehaviorMonadTrait.of(updatedA, events(a)),
         );
       };
@@ -151,14 +158,14 @@ describe('Test Aggregate', () => {
         testAgg,
         Either.flatMap((agg) =>
           pipe(
-            exampleATrait.adder<string>,
+            EntityGenericTrait.adder<ExampleA, string>,
             apply('attrArrayPrimitive' as keyof ExampleA['props']),
             apply({
               E: S.Eq,
               validator: identityInvariantParser,
               events: [
                 DomainEventTrait.construct({
-                  aggregateId: exampleATrait.id(agg),
+                  aggregateId: EntityGenericTrait.id<ExampleA>(agg),
                   aggregateType: testAgg._tag,
                   name: 'ADD_ARRAY_PRIMITIVE',
                 }),
@@ -182,7 +189,7 @@ describe('Test Aggregate', () => {
     });
     describe('test remover with primitives array', () => {
       const remover = pipe(
-        exampleATrait.remover<string>,
+        GenericEntityTraitForExampleA.remover<string>,
         apply('attrArrayPrimitive' as keyof ExampleA['props']),
         apply({
           E: S.Eq,
@@ -191,7 +198,7 @@ describe('Test Aggregate', () => {
             DomainEventTrait.construct({
               aggregateId: pipe(
                 testAgg,
-                Either.map(exampleATrait.id),
+                Either.map(GenericEntityTraitForExampleA.id),
                 Either.getOrElse(() => 'unknown' as Identifier),
               ),
               aggregateType: testAgg._tag,
@@ -236,19 +243,19 @@ describe('Test Aggregate', () => {
         Either.Do,
         Either.bind('agg', () => testAgg),
         Either.bind('newEntity', () =>
-          exampleEntityTrait.parse(constructExampleEntityProps('newEntity')),
+          ExampleEntityTrait.parse(constructExampleEntityProps('newEntity')),
         ),
         Either.flatMap(({ agg, newEntity }) =>
           pipe(
             pipe(
-              exampleATrait.adder<ExampleEntity>,
+              GenericEntityTraitForExampleA.adder<ExampleEntity>,
               apply('attrArrayEntities' as keyof ExampleA['props']),
               apply({
                 E: getEntityEq<ExampleEntity>(),
                 validator: identityInvariantParser,
                 events: [
                   DomainEventTrait.construct({
-                    aggregateId: exampleATrait.id(agg),
+                    aggregateId: GenericEntityTraitForExampleA.id(agg),
                     aggregateType: agg._tag,
                     name: 'ADD_ARRAY_ENTITY',
                   }),

@@ -22,7 +22,6 @@ export class ConsoleDomainLogger implements BaseLogger {
         ...meta,
       );
   }
-
   warn(message: string, ...meta: unknown[]): IO.IO<void> {
     return () => console.warn(this.formatMessageWithContext(message), ...meta);
   }

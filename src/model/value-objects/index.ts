@@ -20,7 +20,7 @@ export const parseNumber = (v: unknown) => {
       (v: unknown): v is number => typeof v === 'number',
       () => ({}),
     ),
-    Either.alt(() => NumberFromString.decode(v)),
+    Either.alt<any, number>(() => NumberFromString.decode(v)),
     Either.mapLeft(() =>
       BaseExceptionBhv.construct('invalid number', 'INVALID_NUMBER'),
     ),
@@ -41,7 +41,7 @@ export const parseDate =
         (v): v is Date => v instanceof Date,
         () => ({}),
       )(v),
-      Either.alt(() => DateFromISOString.decode(v)),
+      Either.alt<any, Date>(() => DateFromISOString.decode(v)),
       Either.mapLeft(() =>
         BaseExceptionBhv.construct(
           exeMessage || 'Date is not valid',
