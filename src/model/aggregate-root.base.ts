@@ -3,6 +3,7 @@ import {
   EntityGenericTrait,
   EntityTrait,
   IEntityGenericTrait,
+  getEntityGenericTraitForType,
 } from './entity.base';
 import { Entity, EntityLiken } from './entity.base.type';
 
@@ -23,3 +24,6 @@ interface IAggGenericTrait extends IEntityGenericTrait {}
 export const AggGenericTrait: IAggGenericTrait = {
   ...EntityGenericTrait,
 };
+
+export const getAggGenericTraitForType = <E extends AggregateRoot>() =>
+  getEntityGenericTraitForType<E>();

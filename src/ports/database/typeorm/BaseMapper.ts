@@ -5,7 +5,7 @@ import { BaseExceptionBhv } from '@logic/exception.base';
 import { Either, NEA, pipe, TE } from '@logic/fp';
 import { Newtype } from 'newtype-ts';
 import { AggregateRoot } from '@model/aggregate-root.base';
-import { getGenericTraitForType } from '@model/entity.base';
+import { getEntityGenericTraitForType } from '@model/entity.base';
 import { Validation } from '@model/invariant-validation';
 import { TypeormEntityBase } from './BaseEntity';
 import { validate } from 'uuid';
@@ -93,7 +93,7 @@ export abstract class OrmMapper<
     entity: Entity,
     toOrmId: IParseOrmId<UUIDTypeOrm> = defaultToOrmId,
   ): TE.TaskEither<unknown, OrmEntity> {
-    const entityGenericTrait = getGenericTraitForType<Entity>();
+    const entityGenericTrait = getEntityGenericTraitForType<Entity>();
     const createdAt = entityGenericTrait.createdAt(entity);
     const updatedAt = entityGenericTrait.updatedAt(entity);
     return pipe(

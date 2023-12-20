@@ -19,7 +19,7 @@ import {
   parseNumber,
   parseArray,
   getEntityEq,
-  getGenericTraitForType,
+  getEntityGenericTraitForType,
   EntityGenericTrait,
 } from 'src';
 import { AggregateLiken, AggregateTrait } from '@model/aggregate-root.base';
@@ -28,7 +28,7 @@ import { omit } from 'ramda';
 type ExampleEntity = Entity<{ a: string }>;
 
 const genericEntityTraitForExampleEntity =
-  getGenericTraitForType<ExampleEntity>();
+  getEntityGenericTraitForType<ExampleEntity>();
 
 const parseExampleEntityProps = (v: EntityLiken<ExampleEntity>) =>
   genericEntityTraitForExampleEntity.structParsingProps({
@@ -61,7 +61,7 @@ type ExampleAProps = {
 
 type ExampleA = AggregateRoot<ExampleAProps>;
 
-const GenericEntityTraitForExampleA = getGenericTraitForType<ExampleA>();
+const GenericEntityTraitForExampleA = getEntityGenericTraitForType<ExampleA>();
 
 const parseExampleAProps = (v: AggregateLiken<ExampleA>) =>
   GenericEntityTraitForExampleA.structParsingProps({

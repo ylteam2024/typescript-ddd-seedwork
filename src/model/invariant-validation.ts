@@ -1,5 +1,5 @@
 import { BaseException } from '@logic/exception.base';
-import { Either, NEA, Option, Record } from '@logic/fp';
+import { Either, NEA, Option, Record, pipe } from '@logic/fp';
 
 type NormalValidationErr = BaseException | NEA.NonEmptyArray<BaseException>;
 export type StructValidationErr = Record<string, NormalValidationErr>;
@@ -24,6 +24,11 @@ export const ValidationTrait = {
 
   fromEitherWithCasting: <A>(either: Either.Either<ValidationErr, any>) =>
     either as Validation<A>,
+
+  fromPredicate:
+    <T>(aBool: boolean, onFalse: () => BaseException) =>
+    (value: T) =>
+      aBool ? ValidationTrait.right(value) : ValidationTrait.left<T>(onFalse()),
 };
 
 export type ValueOfValidation<B> = B extends Validation<infer A> ? A : unknown;
@@ -31,6 +36,14 @@ export type ValidationWithKey<A> = Either.Either<ValidationErrByKey, A>;
 
 export const toValidationErr = (key: Option.Option<string>) =>
   Either.mapLeft((e: ValidationErr) => [key, e] as ValidationErrByKey);
+
+export const mapErrorWithKey =
+  (key: string) =>
+  <E, T>(e: Either.Either<E, T>) =>
+    pipe(
+      e,
+      Either.mapLeft((e) => ({ [key]: e }) as StructValidationErr),
+    );
 
 export type Parser<A, I = any> = (value: I) => Validation<A>;
 
@@ -55,7 +68,7 @@ export type Liken<T> = T extends {
       ? {
           [K in keyof T]: Liken<T[K]>;
         }
-      : never;
+      : unknown;
 
 export type CustomLiken<T, L> = T & {
   likenType: L;

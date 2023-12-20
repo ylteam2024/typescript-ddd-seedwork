@@ -4,6 +4,7 @@ import { Parser, ParsingInput, Validation } from './invariant-validation';
 import { structSummarizerParsing } from './parser';
 import {
   DomainModel,
+  GetProps,
   IGenericDomainModelTrait,
 } from './domain-model.base.type';
 
@@ -44,6 +45,11 @@ export interface DomainModelTrait<D extends DomainModel> {
   parse: Parser<D>;
   new: (params: any) => Validation<D>;
 }
+
+export type StdPropsParser<DM extends DomainModel, I = unknown> = Parser<
+  GetProps<DM>,
+  I
+>;
 
 export type IsEqual<T extends DomainModel = DomainModel> = (
   a: T,

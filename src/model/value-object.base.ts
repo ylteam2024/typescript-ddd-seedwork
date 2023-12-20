@@ -12,7 +12,11 @@ import {
   ParsingInput,
   Validation,
 } from './invariant-validation';
-import { DomainModelTrait, GenericDomainModelTrait } from './domain-model.base';
+import {
+  DomainModelTrait,
+  GenericDomainModelTrait,
+  StdPropsParser,
+} from './domain-model.base';
 
 import { DomainModel } from './domain-model.base.type';
 import { structSummarizerParsing } from './parser';
@@ -95,3 +99,8 @@ export const getVOGenricTraitForType = <VO extends ValueObject>() => ({
   simpleQuery: GenericDomainModelTrait.simpleQuery,
   simpleQueryOpt: GenericDomainModelTrait.simpleQueryOpt,
 });
+
+export type VOStdPropsParser<
+  VO extends ValueObject,
+  I = unknown,
+> = StdPropsParser<VO, I>;

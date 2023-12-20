@@ -1,5 +1,6 @@
 import { Parser, ParsingInput, Validation } from './invariant-validation';
 import { structSummarizerParsing } from './parser';
+import uuid from 'uuid';
 import {
   Arr,
   Either,
@@ -46,10 +47,10 @@ import {
 
 const construct =
   <T extends Entity>(parser: Parser<T['props']>) =>
-  (tag: string) =>
+  (tag: string, options: { autoGenId: boolean } = { autoGenId: true }) =>
   (props: unknown) => {
     const MetaLikeParser = io.type({
-      id: io.string,
+      id: options.autoGenId ? io.union([io.undefined, io.string]) : io.string,
       createdAt: IoTypes.fromNullable(IoTypes.date, new Date()),
       updatedAt: IoTypes.fromNullable(
         IoTypes.option(IoTypes.date),
@@ -65,7 +66,7 @@ const construct =
         }),
         Either.flatMap((metaLike) => {
           return structSummarizerParsing<Omit<EntityCommonProps, '_tag'>>({
-            id: parseId(metaLike.id),
+            id: parseId(options.autoGenId ? uuid.v4() : metaLike.id),
             createdAt: Either.right(metaLike.createdAt),
             updatedAt: Either.right(metaLike.updatedAt),
           });
@@ -352,7 +353,7 @@ export interface IEntityGenericTrait<
   unpack: (dV: Entity) => RRecord.ReadonlyRecord<string, any>;
 }
 
-export const getGenericTraitForType = <E extends Entity>() => ({
+export const getEntityGenericTraitForType = <E extends Entity>() => ({
   factory: construct<E>,
   id: id<E>,
   setId: setId<E>,
