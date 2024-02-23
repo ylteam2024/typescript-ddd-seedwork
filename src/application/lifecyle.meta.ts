@@ -1,5 +1,5 @@
-import { Option, RRecord, pipe } from '@logic/fp';
-import uuid from 'uuid';
+import { Optics, Option, RRecord, pipe } from '@logic/fp';
+import { v4 as uuidv4 } from 'uuid';
 
 export type LifeCycleContext = Record<string, never>;
 
@@ -11,7 +11,9 @@ export type LifeCycleMeta = {
   context: RRecord.ReadonlyRecord<string, never>;
 };
 
-const LifeCycleMetaMod = {
+export const correlationIdLens = Optics.id<LifeCycleMeta>().at('correlationId');
+
+export const LifeCycleMetaMod = {
   factory: (
     correlationId: Option.Option<string>,
     context: Option.Option<RRecord.ReadonlyRecord<string, never>>,
@@ -19,14 +21,13 @@ const LifeCycleMetaMod = {
     createdTimestamp: Date.now(),
     correlationId: pipe(
       correlationId,
-      Option.getOrElse(() => uuid.v4()),
+      Option.getOrElse(() => uuidv4()),
     ),
     context: pipe(
       context,
       Option.getOrElse(() => ({})),
     ),
   }),
+  autoFactory: () => LifeCycleMetaMod.factory(Option.none, Option.none),
   correlationId: (meta: LifeCycleMeta) => meta.correlationId,
 };
-
-export default LifeCycleMetaMod;
