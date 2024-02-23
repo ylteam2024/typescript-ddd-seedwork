@@ -1,47 +1,40 @@
-import { Either, Optics } from '@logic/fp';
+import { Option } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
-import { curry } from 'ramda';
-import LifeCycleMetaMod, { LifeCycleMeta } from './lifecyle.meta';
-import { Identifier, ObjectWithId, idLens } from 'src/typeclasses/obj-with-id';
-import { Parser } from '@model/invariant-validation';
+import { LifeCycleMeta, LifeCycleMetaMod } from './lifecyle.meta';
+import {
+  GetProps,
+  HasProps,
+  getRawProps,
+  queryOnProps,
+} from 'src/typeclasses/has-props';
 
-export type Command<T> = ObjectWithId & {
+export type Command<T> = HasProps<T> & {
   readonly lifecycle: LifeCycleMeta;
-
-  readonly props: T;
 };
 
-const factory =
-  <T>(propsParser: Parser<T>) =>
-  ({
-    id,
+const factory = <Cmd extends Command<unknown>>({
+  lifecycle,
+  props,
+}: {
+  lifecycle: Option.Option<LifeCycleMeta>;
+  props: GetProps<Cmd>;
+}) => {
+  return pipe(
     lifecycle,
-    props,
-  }: {
-    id: Identifier;
-    lifecycle: LifeCycleMeta;
-    props: any;
-  }) => {
-    const command: Command<T> = {
-      id,
-      lifecycle,
+    Option.getOrElse(() => LifeCycleMetaMod.factory(Option.none, Option.none)),
+    (lc) => ({
+      lifecycle: lc,
       props,
-    };
-    return pipe(propsParser(props), Either.as(command));
-  };
-
-const queryProps = curry(<T>(command: Command<T>, propKey: keyof T) =>
-  pipe(command, Optics.get(Optics.id<Command<T>>().at('props').at(propKey))),
-);
-
-const id = <T>(command: Command<T>) => pipe(command, Optics.get(idLens));
+    }),
+  );
+};
 
 const correlationId = <T>(command: Command<T>) =>
   LifeCycleMetaMod.correlationId(command.lifecycle);
 
 export const CommandTrait = {
   factory,
-  id,
-  queryProps,
+  queryProps: queryOnProps,
+  getProps: getRawProps,
   correlationId,
 };
