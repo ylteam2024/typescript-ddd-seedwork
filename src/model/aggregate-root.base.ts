@@ -6,6 +6,7 @@ import {
   getEntityGenericTraitForType,
 } from './entity.base';
 import { Entity, EntityLiken } from './entity.base.type';
+import { BaseDMTraitFactoryConfig, getBaseDMTrait } from './domain-model.base';
 
 export type AggregateRoot<
   T extends RRecord.ReadonlyRecord<string, any> = RRecord.ReadonlyRecord<
@@ -14,10 +15,13 @@ export type AggregateRoot<
   >,
 > = Entity<T>;
 
-export interface AggregateTrait<E extends AggregateRoot>
-  extends EntityTrait<E> {}
+export interface AggregateTrait<E extends AggregateRoot, NewParams = any>
+  extends EntityTrait<E, NewParams> {}
 
-export type AggregateLiken<A extends AggregateRoot> = EntityLiken<A>;
+export type AggregateLiken<A extends AggregateRoot, OV = {}> = EntityLiken<
+  A,
+  OV
+>;
 
 interface IAggGenericTrait extends IEntityGenericTrait {}
 
@@ -27,3 +31,7 @@ export const AggGenericTrait: IAggGenericTrait = {
 
 export const getAggGenericTraitForType = <E extends AggregateRoot>() =>
   getEntityGenericTraitForType<E>();
+
+export const getBaseAGTrait = <A extends AggregateRoot, I = AggregateLiken<A>>(
+  config: BaseDMTraitFactoryConfig<A, I>,
+) => getBaseDMTrait<A, I>(AggGenericTrait.factory)(config);
