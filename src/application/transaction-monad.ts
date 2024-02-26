@@ -3,7 +3,7 @@ import { TE, IO, Either } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 
 export interface IEntityManager {
-  begin(): TE.TaskEither<BaseException, IO.IO<unknown>>;
+  begin(): Tas<BaseException, IO.IO<unknown>>;
   commit(): TE.TaskEither<BaseException, IO.IO<unknown>>;
   rollback(): TE.TaskEither<BaseException, IO.IO<unknown>>;
 }
