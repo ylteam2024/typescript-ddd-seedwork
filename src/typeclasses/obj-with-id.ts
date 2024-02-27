@@ -1,6 +1,6 @@
 import * as Optic from '@fp-ts/optic';
 import { BaseExceptionBhv } from '@logic/exception.base';
-import { Either } from '@logic/fp';
+import { Either, Eq, S } from '@logic/fp';
 import { Parser } from '@model/invariant-validation';
 import { PrimitiveVOTrait } from '@model/value-object.base';
 import { Brand } from '@type_util/index';
@@ -14,6 +14,10 @@ export const parseId: Parser<Identifier> = (v: unknown) => {
     BaseExceptionBhv.construct('invalid identifier', 'INVALID_IDENTIFIER'),
   )(v);
 };
+
+export const IdEq = Eq.fromEquals((id1: Identifier, id2: Identifier) =>
+  S.Eq.equals(id1, id2),
+);
 
 export const IdentifierTrait: PrimitiveVOTrait<Identifier> = {
   parse: parseId,
