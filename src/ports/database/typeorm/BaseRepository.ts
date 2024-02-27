@@ -9,7 +9,7 @@ import {
   FindManyPaginatedParams,
   RepositoryPort,
   DataWithPaginationMeta,
-} from '@ports/Repository';
+} from '@ports/repository.base';
 import { Logger } from '@ports/Logger';
 import { OrmMapper } from './BaseMapper';
 import { TypeormEntityBase } from './BaseEntity';
