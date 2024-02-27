@@ -3,7 +3,7 @@
  * equality through their structrual property.
  */
 
-import { Either, Eq, RRecord, S } from '@logic/fp';
+import { Either, Eq, RRecord, Record, S } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 import { equals } from 'ramda';
 import {
@@ -11,18 +11,23 @@ import {
   Parser,
   ParsingInput,
   Validation,
+  ValidationTrait,
 } from './invariant-validation';
 import {
+  BaseDMTraitFactoryConfig,
   DomainModelTrait,
   GenericDomainModelTrait,
   StdPropsParser,
+  getBaseDMTrait,
 } from './domain-model.base';
 
 import { DomainModel } from './domain-model.base.type';
 import { structSummarizerParsing } from './parser';
+import { BaseExceptionBhv } from '@logic/exception.base';
 
-export interface ValueObject<T = RRecord.ReadonlyRecord<string, any>>
-  extends DomainModel<T> {}
+export interface ValueObject<
+  T extends Record<string, any> = RRecord.ReadonlyRecord<string, any>,
+> extends DomainModel<Readonly<T>> {}
 
 export const getVoEqual = <VO extends ValueObject>() =>
   Eq.struct({
@@ -66,14 +71,11 @@ const structParsing = <ET extends ValueObject>(
   raw: ParsingInput<ET['props']>,
 ) => structSummarizerParsing<ET['props']>(raw);
 
-export const ValueObjectAuFn = {
-  construct: factory,
-  isEqual,
-  structParsing,
-};
-
-export interface ValueObjectTrait<VO extends ValueObject>
-  extends DomainModelTrait<VO> {}
+export interface ValueObjectTrait<
+  VO extends ValueObject,
+  NewParam = any,
+  ParseParam = any,
+> extends DomainModelTrait<VO, NewParam, ParseParam> {}
 
 export interface PrimitiveVOTrait<VO> {
   parse: Parser<VO>;
@@ -104,3 +106,33 @@ export type VOStdPropsParser<
   VO extends ValueObject,
   I = unknown,
 > = StdPropsParser<VO, I>;
+
+export const getPrimitiveVOTrait = <T>(config: {
+  predicate: (v: unknown) => boolean;
+  exceptionMsg?: string;
+  exceptionCode?: string;
+}): PrimitiveVOTrait<T> => {
+  const parse = (v: unknown) =>
+    ValidationTrait.fromPredicate(config.predicate, () =>
+      BaseExceptionBhv.construct(
+        config.exceptionMsg || 'invalid value',
+        config.exceptionCode || 'INVALID_VALUE',
+      ),
+    )(v) as Validation<T>;
+
+  return {
+    parse,
+    new: parse,
+  };
+};
+
+export const getBaseVOTrait = <VO extends ValueObject, I = VOLiken<VO>>(
+  config: BaseDMTraitFactoryConfig<VO, I>,
+) => getBaseDMTrait<VO, I>(VOGenericTrait.construct)(config);
+
+export const ValueObjectAuFn = {
+  construct: factory,
+  isEqual,
+  structParsing,
+  getBaseVOTrait,
+};

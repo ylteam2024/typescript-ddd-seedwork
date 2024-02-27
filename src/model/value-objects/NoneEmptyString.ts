@@ -1,7 +1,9 @@
 import { BaseExceptionBhv } from '@logic/exception.base';
-import { Either, NEA, flow } from '@logic/fp';
+import { Either, NEA, flow, pipe } from '@logic/fp';
 import { PrimitiveVOTrait } from '@model/value-object.base';
 import { Brand } from '@type_util/index';
+import { NonEmptyString as IONonEmptyString } from 'io-ts-types';
+import { ValidationTrait } from '..';
 
 export const isEmptyStringMaxNLength =
   <T>(maxLength: number) =>
@@ -35,9 +37,22 @@ export const NEStringAuFn = {
   getTrait,
 };
 
+export type NonEmptyString = IONonEmptyString;
+
 export type NonEmptyStringMax10 = Brand<string, 'NonEmptyStringMax10'>;
 
 export type NonEmptyStringMax100 = Brand<string, 'NonEmptyStringMax100'>;
+
+const parseNEString = (s: unknown) =>
+  pipe(
+    IONonEmptyString.decode(s),
+    ValidationTrait.fromIOValidation<NonEmptyString>,
+  );
+
+export const NonEmptyStringTrait: PrimitiveVOTrait<NonEmptyString> = {
+  parse: parseNEString,
+  new: parseNEString,
+};
 
 export const nonEmptyStringMax10Trait =
   NEStringAuFn.getTrait<NonEmptyStringMax10>({

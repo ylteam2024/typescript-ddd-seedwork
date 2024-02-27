@@ -2,7 +2,6 @@ import { Either, Option, pipe } from '@logic/fp';
 import { apply } from 'fp-ts/lib/function';
 import { BooleanFromString } from 'io-ts-types';
 import {
-  GetProps,
   Parser,
   VOLiken,
   ValueObject,
@@ -13,6 +12,7 @@ import {
 } from '..';
 import { GenericDomainModelTrait } from '@model/domain-model.base';
 import { optionizeParser } from '@model/parser';
+import { GetProps } from 'src/typeclasses/has-props';
 
 export type Kyc = ValueObject<{
   isVerified: boolean;
