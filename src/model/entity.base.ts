@@ -1,4 +1,9 @@
-import { Parser, ParsingInput, Validation } from './invariant-validation';
+import {
+  Parser,
+  ParsingInput,
+  Validation,
+  ValidationErr,
+} from './invariant-validation';
 import { structSummarizerParsing } from './parser';
 import uuid from 'uuid';
 import {
@@ -22,6 +27,8 @@ import {
   GenericDomainModelTrait,
   DomainModelTrait,
   IsEqual,
+  BaseDMTraitFactoryConfig,
+  getBaseDMTrait,
 } from './domain-model.base';
 import { FirstArgumentType } from '@type_util/function';
 import { Identifier, parseId } from 'src/typeclasses/obj-with-id';
@@ -30,25 +37,27 @@ import {
   Entity,
   EntityCommonProps,
   EntityInvariantParser,
+  EntityLiken,
+  EntityParserFactory,
   SimpleAdder,
   SimpleRemover,
   SimpleSeter,
+  WithEntityMetaInput,
 } from './entity.base.type';
 import {
   getCreatedAt,
   getUpdatedAt,
   updatedAtLen,
 } from 'src/typeclasses/withtime';
-import {
-  KeyProps,
-  SimpleQuery,
-  SimpleQueryOpt,
-} from './domain-model.base.type';
+import { SimpleQuery, SimpleQueryOpt } from './domain-model.base.type';
+import { CommandOnModel, CommandOnModelTrait } from './entity.command-on-model';
+import { Writable } from '@type_util/index';
+import { GetProps, KeyProps } from 'src/typeclasses/has-props';
 
-const construct =
+const construct: EntityParserFactory<WithEntityMetaInput<unknown>> =
   <T extends Entity>(parser: Parser<T['props']>) =>
   (tag: string, options: { autoGenId: boolean } = { autoGenId: true }) =>
-  (props: unknown) => {
+  (props: WithEntityMetaInput<unknown>) => {
     const MetaLikeParser = io.type({
       id: options.autoGenId ? io.union([io.undefined, io.string]) : io.string,
       createdAt: IoTypes.fromNullable(IoTypes.date, new Date()),
@@ -112,7 +121,7 @@ const markUpdate = <T extends Entity>(state: T) =>
   pipe(state, Optics.replace(updatedAtLen<T>())(Option.some(new Date())));
 
 export const identityInvariantParser =
-  <T extends Entity, V extends T['props'][keyof T['props']]>() =>
+  <V>() =>
   (v: V) =>
     Either.of(v);
 
@@ -160,7 +169,7 @@ const adder =
     validator: EntityInvariantParser<T, false, A>;
     events: DomainEvent[];
   }) =>
-  (newItem: A) =>
+  (newItem: A): CommandOnModel<T> =>
   (entity: T) => {
     const lens = entityPropsLen<T>().at(attributeName);
     const getAttr = Optics.get(lens);
@@ -298,7 +307,8 @@ const getSnapshot = <T extends RRecord.ReadonlyRecord<string, any>>(
     ...state.props,
   });
 
-export interface EntityTrait<E extends Entity> extends DomainModelTrait<E> {}
+export interface EntityTrait<E extends Entity, NewParams = any>
+  extends DomainModelTrait<E, NewParams> {}
 
 export interface IEntityGenericTrait<
   T extends Entity = Entity<RRecord.ReadonlyRecord<string, any>>,
@@ -395,4 +405,58 @@ export const EntityGenericTrait: IEntityGenericTrait = {
   structParsingProps: GenericDomainModelTrait.structParsingProps,
   getTag: GenericDomainModelTrait.getTag,
   unpack: GenericDomainModelTrait.unpack,
+};
+
+export const getBaseEntityTrait = <E extends Entity, I = EntityLiken<E>>(
+  config: BaseDMTraitFactoryConfig<E, I>,
+) => getBaseDMTrait<E, I>(EntityGenericTrait.factory)(config);
+
+type AsReducerReturn<E extends Entity> = Either.Either<
+  ValidationErr,
+  [Writable<GetProps<E>>, DomainEvent[]]
+>;
+
+interface AsReducer {
+  <En extends Entity, IFUNC extends (input: any) => CommandOnModel<En>>(
+    reducerLogic: (
+      input: FirstArgumentType<IFUNC>,
+      props: GetProps<En>,
+    ) => AsReducerReturn<En>,
+  ): (input: FirstArgumentType<IFUNC>) => CommandOnModel<En>;
+}
+
+export const asReducer: AsReducer =
+  <En extends Entity, IFUNC extends (input: any) => CommandOnModel<En>>(
+    reducerLogic: (
+      input: FirstArgumentType<IFUNC>,
+      props: GetProps<En>,
+    ) => AsReducerReturn<En>,
+  ) =>
+  (input: FirstArgumentType<IFUNC>) =>
+  (entity: En) => {
+    const propsLen = EntityGenericTrait.propsLen<En>();
+    const result = reducerLogic(input, Optics.get(propsLen)(entity));
+    return pipe(
+      result,
+      Either.match(
+        (exception) => CommandOnModelTrait.fromException<En>(exception),
+        (r) =>
+          CommandOnModelTrait.fromModel2Events(
+            Optics.replace(propsLen)(RRecord.fromRecord(r[0]))(entity),
+            r[1],
+          ),
+      ),
+    );
+  };
+
+export const AsReducerTrait = {
+  right: (v: [Writable<GetProps<Entity>>, DomainEvent[]]) => ({
+    _tag: 'success',
+    result: v,
+  }),
+  left: (e: ValidationErr) => ({
+    _tag: 'failure',
+    result: e,
+  }),
+  as: asReducer,
 };
