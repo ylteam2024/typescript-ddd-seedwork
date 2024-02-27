@@ -1,8 +1,9 @@
 export * from './entity.base';
 export * from './entity.base.type';
+export * from './entity.command-on-model';
 export * from './domain-model.base';
 export * from './domain-model.base.type';
-export { DomainService } from './domain-service.base';
+export * from './domain-service.base';
 export * from './value-object.base';
 export * from './aggregate-root.base';
 export * from './invariant-validation';
