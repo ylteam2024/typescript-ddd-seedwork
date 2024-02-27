@@ -1,14 +1,15 @@
 import { RRecord, Option } from '@logic/fp';
 import { ParsingInput, Validation } from './invariant-validation';
+import { GetProps, HasProps, KeyProps } from 'src/typeclasses/has-props';
 
-export type DomainModel<T = RRecord.ReadonlyRecord<string, any>> = {
-  readonly props: T;
+export type DomainModel<
+  T extends RRecord.ReadonlyRecord<string, any> = RRecord.ReadonlyRecord<
+    string,
+    any
+  >,
+> = HasProps<T> & {
   readonly _tag: string;
 };
-
-export type GetProps<T extends DomainModel> = T['props'];
-
-export type KeyProps<T extends DomainModel> = keyof T['props'];
 
 export type SimpleQuery<T extends DomainModel, R> = (domainModel: T) => R;
 export type SimpleQueryOpt<T extends DomainModel, R> = (
@@ -16,15 +17,13 @@ export type SimpleQueryOpt<T extends DomainModel, R> = (
 ) => Option.Option<R>;
 
 export interface IGenericDomainModelTrait {
-  simpleQuery: <T extends DomainModel, R>(
-    a: keyof T['props'],
-  ) => SimpleQuery<T, R>;
+  simpleQuery: <T extends DomainModel, R>(a: KeyProps<T>) => SimpleQuery<T, R>;
   simpleQueryOpt: <T extends DomainModel, R>(
-    a: keyof T['props'],
+    a: KeyProps<T>,
   ) => SimpleQueryOpt<T, R>;
   getTag: (dV: DomainModel) => string;
   unpack: (dV: DomainModel) => RRecord.ReadonlyRecord<string, any>;
   structParsingProps: <T extends DomainModel>(
-    raw: ParsingInput<T['props']>,
-  ) => Validation<T['props']>;
+    raw: ParsingInput<GetProps<T>>,
+  ) => Validation<GetProps<T>>;
 }

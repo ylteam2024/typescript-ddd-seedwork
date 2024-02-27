@@ -1,3 +1,1 @@
-export interface DomainService<I, T> {
-  handle(input: I): T;
-}
+export type DomainService<In, R> = (params: In) => R;
