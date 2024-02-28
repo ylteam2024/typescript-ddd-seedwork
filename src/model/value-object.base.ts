@@ -126,9 +126,9 @@ export const getPrimitiveVOTrait = <T>(config: {
   };
 };
 
-export const getBaseVOTrait = <VO extends ValueObject, I = VOLiken<VO>>(
-  config: BaseDMTraitFactoryConfig<VO, I>,
-) => getBaseDMTrait<VO, I>(VOGenericTrait.construct)(config);
+export const getBaseVOTrait = <VO extends ValueObject, I = VOLiken<VO>, P = I>(
+  config: BaseDMTraitFactoryConfig<VO, I, P>,
+) => getBaseDMTrait<VO, I, P>(VOGenericTrait.construct)(config);
 
 export const ValueObjectAuFn = {
   construct: factory,

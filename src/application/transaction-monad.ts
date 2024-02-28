@@ -1,5 +1,5 @@
 import { BaseException } from '@logic/exception.base';
-import { TE, IO, Either, Task, IOEither } from '@logic/fp';
+import { TE, Either, Task, IOEither } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 
 export interface IEntityManager {
