@@ -18,9 +18,10 @@ import * as RRecord from 'fp-ts/ReadonlyRecord';
 import * as io from 'io-ts';
 import * as IoTypes from 'io-ts-types';
 export * as rd from 'ramda';
-import { pipe, flow } from 'fp-ts/lib/function';
+import { pipe, flow, identity } from 'fp-ts/lib/function';
 import { BaseException } from './exception.base';
 import { ValidationErr } from '@model/invariant-validation';
+import { TE } from './fp';
 
 type SumException = BaseException | BaseException[] | ValidationErr;
 export type BaseTE<T> = TaskEither.TaskEither<SumException, T>;
@@ -32,6 +33,24 @@ export const absordTE = <T extends TaskEither.TaskEither<any, any>>(te: T) =>
     te,
     TaskEither.map(() => {}),
   );
+
+export const unsafeUnwrapEither = <E, R>(t: Either.Either<E, R>) => {
+  return pipe(
+    t,
+    Either.match((error) => {
+      throw error;
+    }, identity),
+  );
+};
+
+export const unsafeUnwrapTE = <E, R>(te: TE.TaskEither<E, R>) => {
+  return pipe(
+    te,
+    TE.match((e) => {
+      throw e;
+    }, identity),
+  )();
+};
 
 export {
   Optics,
