@@ -1,5 +1,5 @@
-export { Logger } from './Logger';
-export { ConsoleDomainLogger } from './DomainLogger';
+export { Logger } from './logger.base';
+export { getConsoleDomainLogger } from './domain-logger';
 export * from './repository.base';
 export { UnitOfWorkPort } from './uow';
 export { AbstractKeyValueRepository } from './database/keyvalue/KeyValueRepository';
