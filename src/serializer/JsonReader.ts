@@ -1,4 +1,4 @@
-import { BaseExceptionBhv, panic } from '@logic/exception.base';
+import { BaseExceptionBhv } from '@logic/exception.base';
 import R from 'ramda';
 
 export class JsonMediaReader {
@@ -8,7 +8,7 @@ export class JsonMediaReader {
     try {
       this.representation = JSON.parse(aJson);
     } catch (error) {
-      panic(
+      BaseExceptionBhv.panic(
         BaseExceptionBhv.construct(
           'This media instance is not in json format',
           'MEDIA_NOT_IN_JSON_FORMAT',
@@ -26,7 +26,7 @@ export class JsonMediaReader {
   }
   getValue(path: string) {
     if (!/(^(?:\/[a-zA-Z0-9_]+)+$)/g.test(path)) {
-      panic(
+      BaseExceptionBhv.panic(
         BaseExceptionBhv.construct(
           `Json Path Reader is in illegal ${path}`,
           'JSON_PATH_ILLGEGAL',

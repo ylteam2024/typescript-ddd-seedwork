@@ -18,6 +18,6 @@ describe('Test NotificationReader ', () => {
     const plain = { a: 'a' };
     expect(() =>
       NotificationMessageReader.read(JSON.stringify(plain)),
-    ).toThrowError(BaseException);
+    ).toThrowError(/^BaseException:.*$/);
   });
 });

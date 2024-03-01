@@ -7,7 +7,7 @@ import {
 } from 'typeorm';
 import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
 import { Err, Result } from 'oxide.ts/dist';
-import { Logger } from '@ports/Logger';
+import { Logger } from '@ports/logger.base';
 import { UnitOfWorkPort } from '@ports/uow';
 
 /**
@@ -62,7 +62,7 @@ export class TypeormUnitOfWork implements UnitOfWorkPort {
     if (!correlationId) {
       throw new Error('Correlation ID must be provided');
     }
-    this.logger.setContext(`${this.constructor.name}:${correlationId}`);
+    // this.logger.setContext(`${this.constructor.name}:${correlationId}`);
     const queryRunner = this.datasource.createQueryRunner();
     this.queryRunners.set(correlationId, queryRunner);
     this.logger.debug(`[Starting transaction]`);

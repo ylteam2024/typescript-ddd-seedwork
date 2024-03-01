@@ -1,9 +1,12 @@
 import { IO, Reader } from '@logic/fp';
-import { Logger as BaseLogger } from './logger.base';
+import { LoggerWithCtx } from './logger.base';
 
-export const getConsoleDomainLogger: Reader.Reader<string, BaseLogger> = (
-  context: string,
-) => {
+export interface ConsoleDomainLogger extends LoggerWithCtx {}
+
+export const getConsoleDomainLogger: Reader.Reader<
+  string,
+  ConsoleDomainLogger
+> = (context: string) => {
   const formatMessageWithContext = (message: string) =>
     `[${context}] ${message}`;
 

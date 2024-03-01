@@ -10,7 +10,7 @@ import {
   RepositoryPort,
   DataWithPaginationMeta,
 } from '@ports/repository.base';
-import { Logger } from '@ports/Logger';
+import { Logger } from '@ports/logger.base';
 import { OrmMapper } from './BaseMapper';
 import { TypeormEntityBase } from './BaseEntity';
 import { Arr, flow, pipe, TE, Option } from '@logic/fp';
@@ -212,15 +212,6 @@ export abstract class TypeormRepositoryBase<
 
   setCorrelationId(correlationId: string): this {
     this.correlationId = correlationId;
-    this.setContext();
     return this;
-  }
-
-  private setContext() {
-    if (this.correlationId) {
-      this.logger.setContext(`${this.constructor.name}:${this.correlationId}`);
-    } else {
-      this.logger.setContext(this.constructor.name);
-    }
   }
 }

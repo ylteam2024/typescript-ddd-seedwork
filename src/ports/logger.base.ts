@@ -6,3 +6,7 @@ export interface Logger {
   warn(message: string, ...meta: unknown[]): IO.IO<void>;
   debug(message: string, ...meta: unknown[]): IO.IO<void>;
 }
+
+export interface LoggerWithCtx extends Logger {
+  context(): string;
+}

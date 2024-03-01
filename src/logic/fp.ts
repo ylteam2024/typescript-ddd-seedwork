@@ -24,9 +24,15 @@ import { ValidationErr } from '@model/invariant-validation';
 import { TE } from './fp';
 
 type SumException = BaseException | BaseException[] | ValidationErr;
-export type BaseTE<T> = TaskEither.TaskEither<SumException, T>;
+export type BaseTE<
+  T,
+  EX extends SumException = SumException,
+> = TaskEither.TaskEither<EX, T>;
 
-export type BaseEither<T> = Either.Either<SumException, T>;
+export type BaseEither<
+  T,
+  EX extends SumException = SumException,
+> = Either.Either<EX, T>;
 
 export const absordTE = <T extends TaskEither.TaskEither<any, any>>(te: T) =>
   pipe(

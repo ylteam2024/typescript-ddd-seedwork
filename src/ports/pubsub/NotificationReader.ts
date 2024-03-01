@@ -1,4 +1,4 @@
-import { BaseExceptionBhv, panic } from '@logic/exception.base';
+import { BaseExceptionBhv } from '@logic/exception.base';
 import { JsonMediaReader } from 'src/serializer/JsonReader';
 
 export class NotificationMessageReader extends JsonMediaReader {
@@ -7,7 +7,7 @@ export class NotificationMessageReader extends JsonMediaReader {
     super(aNotificationMessage);
     this.event = this.getRepresentation()['event'];
     if (!this.event) {
-      panic(
+      BaseExceptionBhv.panic(
         BaseExceptionBhv.construct(
           'Notification does not contains event information',
           'NOTIFICATION_NULL',

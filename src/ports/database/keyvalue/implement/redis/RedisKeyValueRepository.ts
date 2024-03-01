@@ -1,4 +1,7 @@
-import { ConsoleDomainLogger } from '@ports/DomainLogger';
+import {
+  getConsoleDomainLogger,
+  ConsoleDomainLogger,
+} from '@ports/domain-logger';
 import { ArbFunction } from '@type_util/function';
 import * as redis from 'redis';
 import { AbstractKeyValueRepository } from '../../KeyValueRepository';
@@ -11,8 +14,7 @@ export class RedisKeyValueRepository extends AbstractKeyValueRepository {
 
   constructor(redisClient: RedisClient, prefix?: string) {
     super(prefix);
-    this.logger = new ConsoleDomainLogger();
-    this.logger.setContext('RedisKyValueRepository');
+    this.logger = getConsoleDomainLogger('test_redis');
     this.redisClient = redisClient;
   }
 

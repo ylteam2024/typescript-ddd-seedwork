@@ -11,6 +11,8 @@ describe('Test JsonMediaReader', () => {
     expect(reader.dateValue('/c/d')).toBe(Date.parse(plain['c']['d']));
   });
   it('Test abnormal json', () => {
-    expect(() => JsonMediaReader.read('{a}')).toThrowError(BaseException);
+    expect(() => JsonMediaReader.read('{a}')).toThrowError(
+      /^BaseException:.*$/,
+    );
   });
 });

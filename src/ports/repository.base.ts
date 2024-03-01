@@ -6,7 +6,7 @@
 */
 
 import { BaseException } from '@logic/exception.base';
-import { TE } from '@logic/fp';
+import { BaseTE, TE } from '@logic/fp';
 import { AggregateRoot } from '@model/aggregate-root.base';
 import { Identifier } from 'src/typeclasses/obj-with-id';
 
