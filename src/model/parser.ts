@@ -1,4 +1,4 @@
-import { Option, Either, S, Arr as A, Record, Apply } from '@logic/fp';
+import { Option, Either, S, Arr as A, Record, Apply, RRecord } from '@logic/fp';
 import {
   Parser,
   ParsingInput,
@@ -17,6 +17,8 @@ import { randomUUID } from 'crypto';
 import { P, match } from 'ts-pattern';
 import { isObject } from 'util';
 import { Magma } from 'fp-ts/lib/Magma';
+import { ReadonlyRecord } from 'fp-ts/lib/ReadonlyRecord';
+import { ifElse } from 'ramda';
 
 export const optionizeParser =
   <T>(parser: Parser<T>) =>
@@ -92,22 +94,51 @@ export const structSummarizerParsing = <T>(struct: ParsingInput<T>) => {
       };
     };
 
-  const recordWithKeyValidation = Record.mapWithIndex(
+  const mapLeftItemToLeftWithKeyItem = Record.mapWithIndex(
+    // { a: Left<e> } --> { a: Left<[a, e]> }
     (k: string, a: Validation<unknown>) =>
       pipe(a, toValidationErr(Option.some(k))) as Either.Either<
         ValidationErrByKey,
         ValueOfValidation<typeof a>
       >,
   );
-  const structValidate = Apply.sequenceS(
-    Either.getApplicativeValidation(getValidationErrByKeySemigroup()),
-  );
+  const structValidate = (
+    a: ReadonlyRecord<string, Either.Either<ValidationErrByKey, unknown>>,
+  ) => {
+    return ifElse(
+      (a: RRecord.ReadonlyRecord<string, any>) => RRecord.size(a) === 0,
+      Either.right,
+      Apply.sequenceS(
+        Either.getApplicativeValidation(getValidationErrByKeySemigroup()),
+      ),
+    )(a);
+  };
   return pipe(
     struct,
-    recordWithKeyValidation,
+    // (result) => {
+    //   console.log('struct', result);
+    //   return result;
+    // },
+    mapLeftItemToLeftWithKeyItem,
+    // (result) => {
+    //   console.log('recordWithKeyValidation ', result);
+    //   return result;
+    // },
     structValidate,
+    // (result) => {
+    //   console.log('structValidate', result);
+    //   return result;
+    // },
     Either.mapLeft(getErrorFromErrByKey),
+    // (result) => {
+    //   console.log('getErrorFromErrByKey', result);
+    //   return result;
+    // },
     ValidationTrait.fromEitherWithCasting<T>,
+    // (result) => {
+    //   console.log('fromEitherWithCasting', result);
+    //   return result;
+    // },
   );
 };
 

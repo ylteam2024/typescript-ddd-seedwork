@@ -5,7 +5,7 @@ import {
   ValidationErr,
 } from './invariant-validation';
 import { structSummarizerParsing } from './parser';
-import uuid from 'uuid';
+import { v4 as uuidv4 } from 'uuid';
 import {
   Arr,
   Either,
@@ -75,7 +75,7 @@ const construct: EntityParserFactory<WithEntityMetaInput<unknown>> =
         }),
         Either.flatMap((metaLike) => {
           return structSummarizerParsing<Omit<EntityCommonProps, '_tag'>>({
-            id: parseId(options.autoGenId ? uuid.v4() : metaLike.id),
+            id: parseId(options.autoGenId ? uuidv4() : metaLike.id),
             createdAt: Either.right(metaLike.createdAt),
             updatedAt: Either.right(metaLike.updatedAt),
           });
@@ -307,8 +307,11 @@ const getSnapshot = <T extends RRecord.ReadonlyRecord<string, any>>(
     ...state.props,
   });
 
-export interface EntityTrait<E extends Entity, NewParams = any>
-  extends DomainModelTrait<E, NewParams> {}
+export interface EntityTrait<
+  E extends Entity,
+  NewParams = any,
+  ParseParams = EntityLiken<E>,
+> extends DomainModelTrait<E, NewParams, ParseParams> {}
 
 export interface IEntityGenericTrait<
   T extends Entity = Entity<RRecord.ReadonlyRecord<string, any>>,

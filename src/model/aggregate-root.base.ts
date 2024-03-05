@@ -15,8 +15,11 @@ export type AggregateRoot<
   >,
 > = Entity<T>;
 
-export interface AggregateTrait<E extends AggregateRoot, NewParams = any>
-  extends EntityTrait<E, NewParams> {}
+export interface AggregateTrait<
+  E extends AggregateRoot,
+  NewParams = any,
+  ParseParams = AggregateLiken<E>,
+> extends EntityTrait<E, NewParams, ParseParams> {}
 
 export type AggregateLiken<A extends AggregateRoot, OV = {}> = EntityLiken<
   A,

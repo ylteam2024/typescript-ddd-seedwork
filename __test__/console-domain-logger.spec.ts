@@ -2,14 +2,14 @@ import { getConsoleDomainLogger } from 'src';
 
 describe('Test ConsoleDomainLogger', () => {
   let consoleDomainLogger = getConsoleDomainLogger(
-    'tesnew ConsoleDomainLoggert',
+    'test ConsoleDomainLogger',
   );
   it('Test ConsoleDomainLogger', () => {
     const infoSpy = jest.spyOn(console, 'info');
     const errorSpy = jest.spyOn(console, 'error');
     const warnSpy = jest.spyOn(console, 'warn');
     const debugSpy = jest.spyOn(console, 'debug');
-    expect(consoleDomainLogger.context()).toBe('Test');
+    expect(consoleDomainLogger.context()).toBe('test ConsoleDomainLogger');
 
     consoleDomainLogger.info('Hello Tun.pt')();
     expect(infoSpy).toHaveBeenCalledWith('[Test] Hello Tun.pt');
