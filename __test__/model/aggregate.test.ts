@@ -231,7 +231,7 @@ describe('Test Aggregate', () => {
             (e) => {
               expect(e).toHaveLength(1);
             },
-            (bMonad) => {
+            () => {
               fail();
             },
           ),

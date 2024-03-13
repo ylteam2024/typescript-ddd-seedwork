@@ -1,7 +1,7 @@
 import { FutureArbFnc } from '@type_util/function';
 import { Replies } from 'amqplib';
-import { BrokerComponent } from './BrokerComponent';
-import { ConnectionSettings } from './ConnectionSetting';
+import { BrokerComponent } from './broker-component';
+import { ConnectionSettings } from './connection-setting';
 
 export enum ExchangeType {
   DIRECT = 'direct',
@@ -147,6 +147,9 @@ export class Exchange extends BrokerComponent<ExchangeSetupParam> {
     onSetupFinish: FutureArbFnc,
   ): Promise<void> {
     console.info(`[EXCHANGE] setup exchange ${this.getName()} start`);
+    if (!this.getChannel()) {
+      throw new Error('cannot do setupping, channel is not ready');
+    }
     this._rawExchange = await this.getChannel().assertExchange(
       this.getName(),
       this.exchangeType(),

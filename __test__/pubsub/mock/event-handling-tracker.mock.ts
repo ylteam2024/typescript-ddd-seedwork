@@ -1,4 +1,4 @@
-import { EventHandlingTracker } from "@ports/pubsub/EventHandlingTracker";
+import { EventHandlingTracker } from '@ports/pubsub/event-handling-tracker.base';
 
 export class MockEventHandlingTracker implements EventHandlingTracker {
   store: Record<string, boolean> = {};

@@ -24,6 +24,14 @@ export const Column8Char = (props?: ColumnCommonOptions) =>
     ...props,
   });
 
+export const ColumnUUID = (props: ColumnCommonOptions) =>
+  Column({
+    type: 'varchar',
+    length: 36,
+    nullable: true,
+    ...props,
+  });
+
 export const Column16Char = () =>
   Column({
     type: 'varchar',

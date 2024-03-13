@@ -2,7 +2,7 @@ import { FutureArbFnc } from '@type_util/function';
 import amqp from 'amqp-connection-manager';
 import { IAmqpConnectionManager } from 'amqp-connection-manager/dist/esm/AmqpConnectionManager';
 import { Channel, Connection } from 'amqplib';
-import { ConnectionSettings } from './ConnectionSetting';
+import { ConnectionSettings } from './connection-setting';
 
 export abstract class BrokerComponent<SetupParam> {
   // My channel
@@ -75,7 +75,7 @@ export abstract class BrokerComponent<SetupParam> {
 
   private factoryConnection(
     aConnectionSettings: ConnectionSettings,
-  ): Connection {
+  ): Connection | undefined {
     const connectionMn = amqp.connect(aConnectionSettings.toUrl());
     this.connectionMn = connectionMn;
     connectionMn.addListener('connect', () =>
@@ -102,7 +102,7 @@ export abstract class BrokerComponent<SetupParam> {
         this.handleError(error);
       });
     } catch (error) {
-      this.handleError(error);
+      this.handleError(error as Error);
     }
   }
 
@@ -116,7 +116,7 @@ export abstract class BrokerComponent<SetupParam> {
     try {
       await this.setup(this.setupParams, this.onSetupFinish);
     } catch (error) {
-      this.handleError(error);
+      this.handleError(error as Error);
     }
   }
 
@@ -130,9 +130,9 @@ export abstract class BrokerComponent<SetupParam> {
     :param amqp.Channel channel: The closed channel
     */
     console.info(`Channel ${channel} was closed`);
-    this.channel = null;
+    this.channel = undefined;
 
-    if (this.isOpen) {
+    if (this.isOpen()) {
       await this.connection.close();
       this.setIsOpen(true);
     }
@@ -150,7 +150,7 @@ export abstract class BrokerComponent<SetupParam> {
     this.channel = aChannel;
   }
 
-  getChannel(): Channel | null {
+  getChannel(): Channel | undefined {
     return this.channel;
   }
 

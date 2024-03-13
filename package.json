@@ -5,7 +5,12 @@
   "main": "dist/src/index.js",
   "author": "tuancaurao <tuancr.pt@gmail.com>",
   "license": "MIT",
-  "types": "dist/src/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "index.d.ts": "./dist/src/index.d.ts",
+      "typeorm.d.ts": "./dist/src/typeorm.d.ts"
+    }
+  },
   "keywords": [
     "ddd",
     "utils"
@@ -28,7 +33,16 @@
   },
   "exports": {
     ".": "./dist/src/index.js",
-    "./aim": "./dist/src/aim/index.js"
+    "./aim": {
+      "import": "./dist/src/aim/index.js"
+    },
+    "./database/typeorm": {
+      "import": "./dist/src/typeorm.js",
+      "types": "./dist/src/typeorm.d.ts"
+    },
+    "./database/keyvalue": {
+      "import": "./dist/src/ports/database/keyvalue/index.js"
+    }
   },
   "dependencies": {
     "@fp-ts/optic": "0.19.0",
@@ -55,7 +69,7 @@
     "shallow-equal-object": "^1.1.1",
     "supertokens-node": "^16.4.0",
     "ts-pattern": "^5.0.5",
-    "typeorm": "0.3.7",
+    "typeorm": "0.3.20",
     "uuid": "^9.0.1",
     "validator": "^13.11.0",
     "winston": "^3.8.1",

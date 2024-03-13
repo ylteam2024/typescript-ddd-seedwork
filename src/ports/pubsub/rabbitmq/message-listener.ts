@@ -1,4 +1,4 @@
-import { MessageType } from './MessageType';
+import { MessageType } from './message-type';
 
 export abstract class MessageListener {
   /*

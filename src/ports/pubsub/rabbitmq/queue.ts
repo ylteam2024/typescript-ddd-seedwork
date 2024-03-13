@@ -1,7 +1,7 @@
 import { ArbFunction, FutureArbFnc } from '@type_util/function';
-import { BrokerComponent } from './BrokerComponent';
-import { ConnectionSettings } from './ConnectionSetting';
-import { Exchange } from './Exchange';
+import { BrokerComponent } from './broker-component';
+import { ConnectionSettings } from './connection-setting';
+import { Exchange } from './exchange';
 
 type QueueSetupParam = {
   exclusive: boolean;
@@ -209,7 +209,7 @@ export class Queue extends BrokerComponent<QueueSetupParam> {
     isDurable: boolean,
     isAutoDeleted: boolean,
     isExclusive: boolean,
-    cb: ArbFunction = null,
+    cb: ArbFunction | null = null,
     onSetupError?: ArbFunction,
   ) {
     // this.logger.info(
@@ -265,7 +265,7 @@ export class Queue extends BrokerComponent<QueueSetupParam> {
     isDurable: boolean,
     isAutoDeleted: boolean,
     isExclusive: boolean,
-    cb: ArbFunction = null,
+    cb: ArbFunction | null = null,
     onSetupError?: ArbFunction,
   ) {
     /*
@@ -315,7 +315,7 @@ export class Queue extends BrokerComponent<QueueSetupParam> {
     isDurable: boolean,
     isAutoDeleted: boolean,
     isExclusive: boolean,
-    cb: ArbFunction = null,
+    cb: ArbFunction | null = null,
     onSetupError?: ArbFunction,
   ): Queue {
     /**
@@ -395,7 +395,7 @@ export class Queue extends BrokerComponent<QueueSetupParam> {
     aQueue: Queue,
     anExchange: Exchange,
     routingKey: string,
-    cb: ArbFunction = null,
+    cb: ArbFunction | null = null,
   ) {
     const channel = aQueue.getChannel();
     if (channel) {

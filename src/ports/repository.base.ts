@@ -13,15 +13,15 @@ import { Identifier } from 'src/typeclasses/obj-with-id';
 export type QueryParams = any;
 
 export interface Save<A extends AggregateRoot> {
-  save(aggregateRoot: A): TE.TaskEither<BaseException, A>;
+  save(aggregateRoot: A): TE.TaskEither<BaseException, void>;
 }
 
 export interface Add<A extends AggregateRoot> {
-  add(entity: A): TE.TaskEither<BaseException, A>;
+  add(entity: A): TE.TaskEither<BaseException, void>;
 }
 
 export interface SaveMultiple<A extends AggregateRoot> {
-  saveMultiple?(entities: A[]): TE.TaskEither<BaseException, readonly A[]>;
+  saveMultiple?(entities: A[]): TE.TaskEither<BaseException, void>;
 }
 
 export interface FindOne<A extends AggregateRoot> {

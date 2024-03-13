@@ -1,12 +1,15 @@
-import { ConsoleDomainLogger } from '@ports/DomainLogger';
+import {
+  ConsoleDomainLogger,
+  getConsoleDomainLogger,
+} from '@ports/domain-logger';
 import { ArbFunction } from '@type_util/function';
-import { EventHandlingTracker } from '../EventHandlingTracker';
-import { ConnectionSettings } from './ConnectionSetting';
-import { Exchange, ExchangeType } from './Exchange';
-import { MessageConsumer } from './MessageConsumer';
-import { MessageListener } from './MessageListener';
-import { MessageType } from './MessageType';
-import { Queue } from './Queue';
+import { EventHandlingTracker } from '../event-handling-tracker.base';
+import { ConnectionSettings } from './connection-setting';
+import { Exchange, ExchangeType } from './exchange';
+import { MessageConsumer } from './message-consumer';
+import { MessageListener } from './message-listener';
+import { MessageType } from './message-type';
+import { Queue } from './queue';
 
 export class ExchangeListener {
   private messageConsumer?: MessageConsumer;
@@ -39,8 +42,7 @@ export class ExchangeListener {
   }
 
   constructor(eventHandlingTracker: EventHandlingTracker) {
-    this.logger = new ConsoleDomainLogger();
-    this.logger.setContext(`ExchangeListener ${this.label}`);
+    this.logger = getConsoleDomainLogger(`ExchangeListener ${this.label}`);
     this.eventHandlingTracker = eventHandlingTracker;
   }
 
@@ -52,7 +54,7 @@ export class ExchangeListener {
     this.onReady = cb;
   }
 
-  getMessageConsumer(): MessageConsumer | null {
+  getMessageConsumer(): MessageConsumer | null | undefined {
     return this.messageConsumer;
   }
 
@@ -77,15 +79,15 @@ export class ExchangeListener {
     throw Error('This method need to be overridden');
   }
 
-  filteredDispatch(
-    aType: string,
-    aMessageId: string,
-    aTimeStamp: Date,
-    aMessage: string,
-    aDeliveryTag: number,
-    isRedelivery: boolean,
-  ): Promise<void> {
-    throw Error('This method need to be overridden');
+  filteredDispatch(params: {
+    aType: string;
+    aMessageId: string;
+    aTimeStamp: Date;
+    aMessage: string;
+    aDeliveryTag: number;
+    isRedelivery: boolean;
+  }): Promise<void> {
+    throw Error('This method need to be overridden' + params);
   }
 
   /*
@@ -117,7 +119,7 @@ export class ExchangeListener {
     this.queue = aQueue;
   }
 
-  getQueue(): Queue {
+  getQueue(): Queue | undefined {
     return this.queue;
   }
 
@@ -155,20 +157,19 @@ export class ExchangeListener {
   ) {
     const idempotentHandle = async (isHandled: boolean) => {
       if (!isHandled) {
-        await this.filteredDispatch(
+        await this.filteredDispatch({
           aType,
           aMessageId,
           aTimeStamp,
-          aMessage.toString(), // utf8 decode
+          aMessage: aMessage.toString(), // utf8 decode
           aDeliveryTag,
           isRedelivery,
-        );
+        });
         await this.eventHandlingTracker.markNotifAsHandled(aMessageId);
       }
     };
-    const isEventHandled = await this.eventHandlingTracker.checkIfNotifHandled(
-      aMessageId,
-    );
+    const isEventHandled =
+      await this.eventHandlingTracker.checkIfNotifHandled(aMessageId);
     await idempotentHandle(isEventHandled);
   }
 
@@ -218,6 +219,8 @@ export class ExchangeListener {
 
   async stop() {
     const messageConsumer = this.messageConsumer;
-    await messageConsumer.close();
+    if (messageConsumer) {
+      await messageConsumer.close();
+    }
   }
 }

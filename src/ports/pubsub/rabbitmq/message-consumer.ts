@@ -1,8 +1,11 @@
-import { BaseException, BaseExceptionBhv, panic } from '@logic/exception.base';
-import { ConsoleDomainLogger } from '@ports/DomainLogger';
+import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import {
+  getConsoleDomainLogger,
+  ConsoleDomainLogger,
+} from '@ports/domain-logger';
 import { Channel, Message } from 'amqplib';
-import { MessageListener } from './MessageListener';
-import { Queue } from './Queue';
+import { MessageListener } from './message-listener';
+import { Queue } from './queue';
 
 export class MessageConsumer {
   private _autoAcknowled: boolean;
@@ -41,8 +44,7 @@ export class MessageConsumer {
     this.setMessageTypes(new Set());
     this._isRetry = isRetry;
     this._label = label;
-    this.logger = new ConsoleDomainLogger();
-    this.logger.setContext(`MessageConsumer ${label}`);
+    this.logger = getConsoleDomainLogger(`MessageConsumer ${label}`);
   }
 
   static async factory(
@@ -131,7 +133,9 @@ export class MessageConsumer {
       this.logger.info(`QOS set to: ${this._prefetchCount}`);
       this.setIsReady(true);
     } catch (error) {
-      panic(BaseExceptionBhv.construct('', 'MESSAGE_EQUALIZE_PREFETCH'));
+      BaseExceptionBhv.panic(
+        BaseExceptionBhv.construct('', 'MESSAGE_EQUALIZE_PREFETCH'),
+      );
     }
   }
 
@@ -235,7 +239,9 @@ export class MessageConsumer {
       this.setTag(tag.consumerTag);
       this.setIsConsuming(true);
     } catch (error) {
-      panic(BaseExceptionBhv.construct('', 'INITIATE_CONSUMER_FAILED'));
+      BaseExceptionBhv.panic(
+        BaseExceptionBhv.construct('', 'INITIATE_CONSUMER_FAILED'),
+      );
     }
   }
 
@@ -271,7 +277,7 @@ export class MessageConsumer {
     the IOLoop will be buffered but not processed.
     */
     this._closed = true;
-    if (this.isConsuming) {
+    if (this.isConsuming()) {
       await this.stopConsuming();
     } else {
       await this.queue().close();

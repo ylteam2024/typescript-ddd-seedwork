@@ -1,2 +1,2 @@
-export * from './KeyValueRepository';
-export * as redis from './implement/redis/RedisKeyValueRepository';
+export * from './key-value.repository';
+export * as redis from './implement/redis/redis.key-value.repository';

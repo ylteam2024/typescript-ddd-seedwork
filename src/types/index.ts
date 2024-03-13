@@ -6,3 +6,5 @@ export type Writable<T> = {
 };
 
 export type Brand<K, T> = K & { __brand: T };
+
+export type KeyOf<T> = keyof T extends never ? string : keyof T;

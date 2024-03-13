@@ -7,7 +7,7 @@ import { Newtype } from 'newtype-ts';
 import { AggregateRoot } from '@model/aggregate-root.base';
 import { getEntityGenericTraitForType } from '@model/entity.base';
 import { Validation } from '@model/invariant-validation';
-import { TypeormEntityBase } from './BaseEntity';
+import { TypeormEntityBase } from './base-entity';
 import { validate } from 'uuid';
 import { Identifier } from 'src/typeclasses/obj-with-id';
 

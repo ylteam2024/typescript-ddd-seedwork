@@ -1,4 +1,8 @@
-import { CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  CreateDateColumn,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export abstract class TypeormEntityBase {
   constructor(props?: unknown) {
@@ -17,4 +21,13 @@ export abstract class TypeormEntityBase {
     type: 'timestamptz',
   })
   updatedAt: Date;
+}
+
+export abstract class AggregateTypeORMEntityBase extends TypeormEntityBase {
+  constructor(props?: unknown) {
+    super(props);
+  }
+
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 }

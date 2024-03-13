@@ -1,4 +1,4 @@
-import { RedisKeyValueRepository } from '@ports/database/keyvalue/implement/redis/RedisKeyValueRepository';
+import { RedisKeyValueRepository } from '../../../src/ports/database/keyvalue/implement/redis/redis.key-value.repository';
 
 describe('test redis port', () => {
   let redisKeyValueRepository: RedisKeyValueRepository;

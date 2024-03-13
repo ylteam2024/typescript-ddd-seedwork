@@ -1,5 +1,5 @@
-import { AbstractKeyValueRepository } from '@ports/database/keyvalue/KeyValueRepository';
-import { EventHandlingTracker } from '../EventHandlingTracker';
+import { AbstractKeyValueRepository } from '@ports/database/keyvalue/key-value.repository';
+import { EventHandlingTracker } from '../event-handling-tracker.base';
 
 export class KVEventHandlingTracker implements EventHandlingTracker {
   private keyValueStore: AbstractKeyValueRepository;

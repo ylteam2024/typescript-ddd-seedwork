@@ -7,7 +7,7 @@ import {
   ExchangeType,
 } from '@ports/pubsub/rabbitmq';
 import { randomUUID } from 'crypto';
-import { MockEventHandlingTracker } from '../mock/MockEventHandlingTracker';
+import { MockEventHandlingTracker } from '../mock/event-handling-tracker.mock';
 
 describe('Exchange Listener', () => {
   let connectionSetting = null;
@@ -55,34 +55,20 @@ describe('Exchange Listener', () => {
     override queueName(): string {
       return newQueueName();
     }
-    async handle(
-      aType: string,
-      aMessageId: string,
-      aTimeStamp: Date,
-      aMessage: string,
-      aDeliveryTag: number,
-      isRedelivery: boolean,
-    ) {
-      return null;
-    }
+    handle = jest.fn().mockResolvedValue(null);
 
-    async filteredDispatch(
-      aType: string,
-      aMessageId: string,
-      aTimeStamp: Date,
-      aMessage: string,
-      aDeliveryTag: number,
-      isRedelivery: boolean,
-    ): Promise<void> {
-      console.info(`Handle message [type] ${aType} [content] ${aMessage}`);
-      await this.handle(
-        aType,
-        aMessageId,
-        aTimeStamp,
-        aMessage,
-        aDeliveryTag,
-        isRedelivery,
+    async filteredDispatch(params: {
+      aType: string;
+      aMessageId: string;
+      aTimeStamp: Date;
+      aMessage: string;
+      aDeliveryTag: number;
+      isRedelivery: boolean;
+    }): Promise<void> {
+      console.info(
+        `Handle message [type] ${params.aType} [content] ${params.aMessage}`,
       );
+      await this.handle(params);
     }
   }
 
@@ -133,17 +119,17 @@ describe('Exchange Listener', () => {
           // isDurable = false;
           exchangeType = ExchangeType.FANOUT;
           queueDurable = true;
-          override async handle(
-            aType: string,
-            aMessageId: string,
-            aTimeStamp: Date,
-            aMessage: string,
-            aDeliveryTag: number,
-            isRedelivery: boolean,
-          ): Promise<void> {
-            if (aMessageId === messageId) {
+          override async handle(params: {
+            aType: string;
+            aMessageId: string;
+            aTimeStamp: Date;
+            aMessage: string;
+            aDeliveryTag: number;
+            isRedelivery: boolean;
+          }): Promise<void> {
+            if (params.aMessageId === messageId) {
               handled = true;
-              resolve(aMessage);
+              resolve(params.aMessage);
             }
           }
           exchangeName(): string {
@@ -186,17 +172,17 @@ describe('Exchange Listener', () => {
           exchangeDurable = true;
           exchangeType = ExchangeType.FANOUT;
 
-          override async handle(
-            aType: string,
-            aMessageId: string,
-            aTimeStamp: Date,
-            aMessage: string,
-            aDeliveryTag: number,
-            isRedelivery: boolean,
-          ): Promise<void> {
+          override async handle(params: {
+            aType: string;
+            aMessageId: string;
+            aTimeStamp: Date;
+            aMessage: string;
+            aDeliveryTag: number;
+            isRedelivery: boolean;
+          }): Promise<void> {
             handled = true;
-            if (aMessageId === messageId) {
-              resolve(aMessage);
+            if (params.aMessageId === messageId) {
+              resolve(params.aMessage);
             }
           }
           exchangeName(): string {
@@ -234,14 +220,7 @@ describe('Exchange Listener', () => {
         exchangeType = ExchangeType.DIRECT;
         queueRoutingKeys = routingKeys;
 
-        override async handle(
-          aType: string,
-          aMessageId: string,
-          aTimeStamp: Date,
-          aMessage: string,
-          aDeliveryTag: number,
-          isRedelivery: boolean,
-        ): Promise<void> {
+        override async handle(): Promise<void> {
           handled = true;
           if (aMessageId === messageId) {
             resolve(aMessage);
@@ -285,18 +264,18 @@ describe('Exchange Listener', () => {
       class MockListenerTarget extends AbstractMockListener {
         exchangeType = ExchangeType.DIRECT;
 
-        override async handle(
-          aType: string,
-          aMessageId: string,
-          aTimeStamp: Date,
-          aMessage: string,
-          aDeliveryTag: number,
-          isRedelivery: boolean,
-        ): Promise<void> {
+        override async handle(params: {
+          aType: string;
+          aMessageId: string;
+          aTimeStamp: Date;
+          aMessage: string;
+          aDeliveryTag: number;
+          isRedelivery: boolean;
+        }): Promise<void> {
           handled = true;
-          if (aMessageId === messageId) {
+          if (params.aMessageId === messageId) {
             console.log('handle message in default routing ');
-            resolve(aMessage);
+            resolve(params.aMessage);
           }
         }
         override exchangeName(): string {

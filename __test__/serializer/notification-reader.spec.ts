@@ -1,5 +1,5 @@
 import { BaseException } from '@logic/exception.base';
-import { NotificationMessageReader } from '@ports/pubsub/NotificationReader';
+import { NotificationMessageReader } from '@ports/pubsub/notification-reader';
 
 describe('Test NotificationReader ', () => {
   it('Test reading', () => {

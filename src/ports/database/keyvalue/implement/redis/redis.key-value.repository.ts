@@ -4,7 +4,7 @@ import {
 } from '@ports/domain-logger';
 import { ArbFunction } from '@type_util/function';
 import * as redis from 'redis';
-import { AbstractKeyValueRepository } from '../../KeyValueRepository';
+import { AbstractKeyValueRepository } from '../../key-value.repository';
 
 type RedisClient = ReturnType<typeof redis.createClient>;
 export class RedisKeyValueRepository extends AbstractKeyValueRepository {

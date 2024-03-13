@@ -11,9 +11,8 @@ import {
   DataWithPaginationMeta,
 } from '@ports/repository.base';
 import { Logger } from '@ports/logger.base';
-import { OrmMapper } from './BaseMapper';
-import { TypeormEntityBase } from './BaseEntity';
-import { Arr, flow, pipe, TE, Option } from '@logic/fp';
+import { AggregateTypeORMEntityBase } from './base-entity';
+import { Arr, flow, pipe, TE, Option, absordTE } from '@logic/fp';
 import {
   BaseException,
   BaseExceptionBhv,
@@ -21,8 +20,12 @@ import {
 } from '@logic/exception.base';
 import { identity } from 'ramda';
 import { AggregateRoot } from '@model/aggregate-root.base';
-import { getEntityGenericTraitForType } from '@model/entity.base';
+import {
+  EntityGenericTrait,
+  getEntityGenericTraitForType,
+} from '@model/entity.base';
 import { Identifier } from 'src/typeclasses/obj-with-id';
+import { DataMapper } from '@ports/mapper.base';
 
 export type WhereCondition<OrmEntity> =
   | FindOptionsWhere<OrmEntity>[]
@@ -32,13 +35,13 @@ export type WhereCondition<OrmEntity> =
 
 export abstract class TypeormRepositoryBase<
   Entity extends AggregateRoot,
-  OrmEntity extends TypeormEntityBase,
+  OrmEntity extends AggregateTypeORMEntityBase,
 > implements RepositoryPort<Entity>
 {
   entityTrait = getEntityGenericTraitForType<Entity>();
   protected constructor(
     protected readonly repository: Repository<OrmEntity>,
-    protected readonly mapper: OrmMapper<Identifier, Entity, OrmEntity>,
+    protected readonly mapper: DataMapper<Entity, OrmEntity>,
     protected readonly logger: Logger,
   ) {}
 
@@ -54,10 +57,18 @@ export abstract class TypeormRepositoryBase<
     params: QueryParams,
   ): FindOptionsWhere<OrmEntity>;
 
-  save(entity: Entity): TE.TaskEither<BaseException, Entity> {
+  save(entity: Entity): TE.TaskEither<BaseException, void> {
     return pipe(
       entity,
-      this.mapper.toOrmEntity,
+      EntityGenericTrait.id<Entity>,
+      this.findOneDataModelByIdOrThrow,
+      TE.flatMap((currentDataIns) =>
+        pipe(
+          { domainModel: entity, initState: Option.some(currentDataIns) },
+          this.mapper.toData,
+          TE.fromEither,
+        ),
+      ),
       TE.flatMap(TE.tryCatchK(this.repository.save, identity)),
       TE.tapIO(() =>
         this.logger.debug(
@@ -66,28 +77,37 @@ export abstract class TypeormRepositoryBase<
             .toString()}`,
         ),
       ),
-      TE.chain(this.mapper.toDomainEntity),
       TE.mapError(unknownErrToBaseException),
+      absordTE,
     );
   }
 
-  add(entity: Entity): TE.TaskEither<BaseException, Entity> {
+  add(entity: Entity): TE.TaskEither<BaseException, void> {
     return pipe(
-      entity,
-      this.mapper.toOrmEntity,
+      { domainModel: entity, initState: Option.none },
+      this.mapper.toData,
+      TE.fromEither,
       TE.flatMap(TE.tryCatchK(this.repository.save, identity)),
       TE.tapIO((result) =>
         this.logger.debug(`[${entity.constructor.name}] persisted ${result}`),
       ),
-      TE.flatMap(this.mapper.toDomainEntity),
       TE.mapError(unknownErrToBaseException),
+      absordTE,
     );
   }
 
   saveMultiple(entities: Entity[]) {
     return pipe(
       entities,
-      Arr.map(this.mapper.toOrmEntity),
+      Arr.map((entity) =>
+        pipe(
+          entity,
+          EntityGenericTrait.id,
+          this.findOneDataModelByIdOrThrow,
+          TE.map((dE) => ({ initState: Option.some(dE), domainModel: entity })),
+          TE.flatMap(flow(this.mapper.toData, TE.fromEither)),
+        ),
+      ),
       TE.sequenceArray,
       TE.flatMap(
         TE.tryCatchK(
@@ -100,8 +120,47 @@ export abstract class TypeormRepositoryBase<
           `[${entities}]: persisted ${entities.map((entity) => entity.id)}`,
         ),
       ),
-      TE.flatMap(flow(Arr.map(this.mapper.toDomainEntity), TE.sequenceArray)),
       TE.mapError(unknownErrToBaseException),
+      absordTE,
+    );
+  }
+
+  findOneDataModelById(
+    id: Identifier,
+  ): TE.TaskEither<BaseException, Option.Option<OrmEntity>> {
+    return pipe(
+      {
+        where: this.prepareQuery({ id: id as string }),
+      },
+      TE.tryCatchK(this.repository.findOne, identity),
+      TE.map(Option.fromNullable),
+      TE.mapError((e) =>
+        BaseExceptionBhv.construct(
+          (e as Error).message,
+          'FIND_DATA_MODEL_BY_ID_ERROR',
+        ),
+      ),
+    );
+  }
+
+  findOneDataModelByIdOrThrow(
+    id: Identifier,
+  ): TE.TaskEither<BaseException, OrmEntity> {
+    return pipe(
+      id,
+      this.findOneDataModelById,
+      TE.flatMap(
+        Option.match(
+          () =>
+            TE.left(
+              BaseExceptionBhv.construct(
+                'entity not found',
+                'ENTITY_NOT_FOUND',
+              ),
+            ),
+          (dE) => TE.right(dE),
+        ),
+      ),
     );
   }
 
@@ -114,7 +173,7 @@ export abstract class TypeormRepositoryBase<
       TE.flatMap(
         flow(
           Option.fromNullable,
-          Option.map(this.mapper.toDomainEntity),
+          Option.map(flow(this.mapper.toDomain, TE.fromEither)),
           Option.sequence(TE.ApplicativeSeq),
         ),
       ),
@@ -154,7 +213,12 @@ export abstract class TypeormRepositoryBase<
         relations: this.relations,
       },
       TE.tryCatchK(this.repository.find, identity),
-      TE.flatMap(flow(Arr.map(this.mapper.toDomainEntity), TE.sequenceArray)),
+      TE.flatMap(
+        flow(
+          Arr.map(flow(this.mapper.toDomain, TE.fromEither)),
+          TE.sequenceArray,
+        ),
+      ),
       TE.map((foundEntities) => [...foundEntities]),
       TE.mapError(unknownErrToBaseException),
     );
@@ -180,7 +244,7 @@ export abstract class TypeormRepositoryBase<
       TE.flatMap(([data, count]) =>
         pipe(
           data,
-          Arr.map(this.mapper.toDomainEntity),
+          Arr.map(flow(this.mapper.toDomain, TE.fromEither)),
           TE.sequenceArray,
           TE.map((entities) => ({
             data: [...entities],
@@ -194,10 +258,11 @@ export abstract class TypeormRepositoryBase<
     );
   }
 
-  delete(entity: Entity): TE.TaskEither<BaseException, unknown> {
+  delete(entity: Entity): TE.TaskEither<BaseException, void> {
     return pipe(
       entity,
-      this.mapper.toOrmEntity,
+      EntityGenericTrait.id,
+      this.findOneDataModelByIdOrThrow,
       TE.flatMap(TE.tryCatchK(this.repository.remove, identity)),
       TE.tapIO(() =>
         this.logger.debug(
@@ -205,6 +270,7 @@ export abstract class TypeormRepositoryBase<
         ),
       ),
       TE.mapError(unknownErrToBaseException),
+      absordTE,
     );
   }
 
