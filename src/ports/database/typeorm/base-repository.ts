@@ -5,7 +5,6 @@ import {
   FindOptionsOrder,
 } from 'typeorm';
 import {
-  QueryParams,
   FindManyPaginatedParams,
   RepositoryPort,
   DataWithPaginationMeta,
@@ -33,9 +32,14 @@ export type WhereCondition<OrmEntity> =
   | ObjectLiteral
   | string;
 
+export interface BaseAggregateQueryParams {
+  id: Identifier;
+}
+
 export abstract class TypeormRepositoryBase<
   Entity extends AggregateRoot,
   OrmEntity extends AggregateTypeORMEntityBase,
+  QueryParams extends BaseAggregateQueryParams,
 > implements RepositoryPort<Entity>
 {
   entityTrait = getEntityGenericTraitForType<Entity>();
@@ -54,7 +58,7 @@ export abstract class TypeormRepositoryBase<
   protected tableName = this.repository.metadata.tableName;
 
   protected abstract prepareQuery(
-    params: QueryParams,
+    params: Partial<QueryParams>,
   ): FindOptionsWhere<OrmEntity>;
 
   save(entity: Entity): TE.TaskEither<BaseException, void> {
@@ -130,7 +134,7 @@ export abstract class TypeormRepositoryBase<
   ): TE.TaskEither<BaseException, Option.Option<OrmEntity>> {
     return pipe(
       {
-        where: this.prepareQuery({ id: id as string }),
+        where: this.prepareQuery({ id } as Partial<QueryParams>),
       },
       TE.tryCatchK(this.repository.findOne, identity),
       TE.map(Option.fromNullable),
@@ -165,7 +169,7 @@ export abstract class TypeormRepositoryBase<
   }
 
   findOne(
-    params: QueryParams = {},
+    params: Partial<QueryParams> = {},
   ): TE.TaskEither<BaseException, Option.Option<Entity>> {
     return pipe(
       { where: this.prepareQuery(params), relations: this.relations },
@@ -182,7 +186,7 @@ export abstract class TypeormRepositoryBase<
   }
 
   findOneOrThrow(
-    params: QueryParams = {},
+    params: Partial<QueryParams> = {},
   ): TE.TaskEither<BaseException, Entity> {
     return pipe(
       params,
@@ -203,10 +207,12 @@ export abstract class TypeormRepositoryBase<
   }
 
   findOneByIdOrThrow(id: Identifier): TE.TaskEither<BaseException, Entity> {
-    return this.findOneOrThrow({ id });
+    return this.findOneOrThrow({ id } as Partial<QueryParams>);
   }
 
-  findMany(params: QueryParams = {}): TE.TaskEither<BaseException, Entity[]> {
+  findMany(
+    params: Partial<QueryParams> = {},
+  ): TE.TaskEither<BaseException, Entity[]> {
     return pipe(
       {
         where: this.prepareQuery(params),
