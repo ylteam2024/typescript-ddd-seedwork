@@ -100,19 +100,17 @@ export type StructValidation<A> = Either.Either<
   A
 >;
 
-type Prim = string | number | boolean | Date | Option.Option<unknown>;
+type Prim = string | number | boolean | Date;
 
-type PrimLiken<T extends Prim> = T extends Option.Option<unknown>
-  ? Option.Option<unknown>
-  : T extends string
-    ? string
-    : T extends number
-      ? number
-      : T extends boolean
-        ? boolean
-        : T extends Date
-          ? Date
-          : unknown;
+type PrimLiken<T extends Prim> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : T extends Date
+        ? Date
+        : unknown;
 
 export type Liken<T> = T extends {
   likenType: infer U;

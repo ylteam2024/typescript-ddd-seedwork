@@ -39,7 +39,7 @@ export interface BaseAggregateQueryParams {
 export abstract class TypeormRepositoryBase<
   Entity extends AggregateRoot,
   OrmEntity extends AggregateTypeORMEntityBase,
-  QueryParams extends BaseAggregateQueryParams,
+  QueryParams extends BaseAggregateQueryParams = BaseAggregateQueryParams,
 > implements RepositoryPort<Entity>
 {
   entityTrait = getEntityGenericTraitForType<Entity>();

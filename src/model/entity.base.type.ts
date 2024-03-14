@@ -1,4 +1,4 @@
-import { RRecord, Record } from '@logic/fp';
+import { Option, RRecord, Record } from '@logic/fp';
 import { DomainModel } from './domain-model.base.type';
 import { ObjectWithId } from 'src/typeclasses';
 import { WithTime } from 'src/typeclasses/withtime';
@@ -18,19 +18,26 @@ export type EntityCommonProps = Omit<Entity, 'props'>;
 
 export type EntityLiken<T extends Entity, OV = {}> = WithEntityMetaInput<
   {
-    [K in keyof Omit<T['props'], keyof OV>]: T['props'][K] extends Entity
-      ? EntityLiken<T['props'][K]>
-      : T['props'][K] extends Array<unknown> & { [key: number]: Entity }
-        ? EntityLiken<T['props'][K][0]>[]
-        : T['props'][K] extends ValueObject
-          ? VOLiken<T['props'][K]>
-          : T['props'][K] extends Array<unknown> & {
-                [key: number]: ValueObject;
-              }
-            ? VOLiken<T['props'][K][0]>[]
-            : Liken<T['props'][K]>;
+    [K in keyof Omit<
+      T['props'],
+      keyof OV
+    >]: T['props'][K] extends Option.Option<infer U>
+      ? Option.Option<RecursiveWithArray<U>>
+      : RecursiveWithArray<T['props'][K]>;
   } & OV
 >;
+
+type RecursiveWithArray<I> = I extends Entity
+  ? EntityLiken<I>
+  : I extends Array<unknown> & { [key: number]: Entity }
+    ? EntityLiken<I[0]>[]
+    : I extends ValueObject
+      ? VOLiken<I>
+      : I extends Array<unknown> & {
+            [key: number]: ValueObject;
+          }
+        ? VOLiken<I[0]>[]
+        : Liken<I>;
 
 export type WithEntityMetaInput<OriginInput> = OriginInput &
   Liken<Omit<EntityCommonProps, '_tag' | 'id'>> & { id?: unknown };

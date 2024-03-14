@@ -57,7 +57,7 @@ import { GetProps, KeyProps } from 'src/typeclasses/has-props';
 const construct: EntityParserFactory<WithEntityMetaInput<unknown>> =
   <T extends Entity>(parser: Parser<T['props']>) =>
   (tag: string, options: { autoGenId: boolean } = { autoGenId: true }) =>
-  (props: WithEntityMetaInput<unknown>) => {
+  (props: WithEntityMetaInput<FirstArgumentType<typeof parser>>) => {
     const MetaLikeParser = io.type({
       id: options.autoGenId ? io.union([io.undefined, io.string]) : io.string,
       createdAt: IoTypes.fromNullable(IoTypes.date, new Date()),
@@ -318,7 +318,7 @@ export interface IEntityGenericTrait<
 > {
   factory: <TS extends Entity = T>(
     propsParser: Parser<TS['props']>,
-  ) => (tag: string) => Parser<TS>;
+  ) => (tag: string) => Parser<TS, FirstArgumentType<typeof propsParser>>;
   id: <TS extends Entity = T>(t: TS) => Identifier;
   setId: <TS extends Entity = T>(id: Identifier) => (domainState: TS) => TS;
   createdAt: <TS extends Entity = T>(

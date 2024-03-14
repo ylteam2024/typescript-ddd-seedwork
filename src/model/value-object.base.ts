@@ -3,7 +3,7 @@
  * equality through their structrual property.
  */
 
-import { Either, Eq, RRecord, Record, S } from '@logic/fp';
+import { Either, Eq, Option, RRecord, Record, S } from '@logic/fp';
 import { pipe } from 'fp-ts/lib/function';
 import { equals } from 'ramda';
 import {
@@ -58,14 +58,18 @@ export type VOLiken<T extends ValueObject> = T extends {
 }
   ? U
   : {
-      [K in keyof T['props']]: T['props'][K] extends ValueObject
-        ? VOLiken<T['props'][K]>
-        : T['props'][K] extends Array<unknown> & {
-              [key: number]: ValueObject;
-            }
-          ? VOLiken<T['props'][K][0]>[]
-          : Liken<T['props'][K]>;
+      [K in keyof T['props']]: T['props'][K] extends Option.Option<infer OU>
+        ? Option.Option<RecursiveWithArray<OU>>
+        : RecursiveWithArray<T['props'][K]>;
     };
+
+type RecursiveWithArray<I> = I extends ValueObject
+  ? VOLiken<I>
+  : I extends Array<unknown> & {
+        [key: number]: ValueObject;
+      }
+    ? VOLiken<I[0]>[]
+    : Liken<I>;
 
 const structParsing = <ET extends ValueObject>(
   raw: ParsingInput<ET['props']>,
