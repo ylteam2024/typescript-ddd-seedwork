@@ -122,7 +122,9 @@ export type Liken<T> = T extends {
       ? {
           [K in keyof T]: Liken<T[K]>;
         }
-      : unknown;
+      : T extends Option.Option<infer U>
+        ? Option.Option<Liken<U>>
+        : unknown;
 
 export type CustomLiken<T, L> = T & {
   likenType: L;
