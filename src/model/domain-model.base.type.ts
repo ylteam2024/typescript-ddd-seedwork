@@ -22,7 +22,7 @@ export interface IGenericDomainModelTrait {
     a: KeyProps<T>,
   ) => SimpleQueryOpt<T, R>;
   getTag: (dV: DomainModel) => string;
-  unpack: (dV: DomainModel) => RRecord.ReadonlyRecord<string, any>;
+  unpack: <T extends DomainModel>(dV: T) => GetProps<T>;
   structParsingProps: <T extends DomainModel>(
     raw: ParsingInput<GetProps<T>>,
   ) => Validation<GetProps<T>>;
