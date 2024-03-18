@@ -43,10 +43,10 @@ export abstract class TypeormRepositoryBase<
 > implements RepositoryPort<Entity>
 {
   entityTrait = getEntityGenericTraitForType<Entity>();
-  protected constructor(
-    protected readonly repository: Repository<OrmEntity>,
-    protected readonly mapper: DataMapper<Entity, OrmEntity>,
-    protected readonly logger: Logger,
+  constructor(
+    protected repository: Repository<OrmEntity>,
+    protected mapper: DataMapper<Entity, OrmEntity>,
+    protected logger: Logger,
   ) {}
 
   /**

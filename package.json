@@ -7,8 +7,10 @@
   "license": "MIT",
   "typesVersions": {
     "*": {
-      "index.d.ts": "./dist/src/index.d.ts",
-      "typeorm.d.ts": "./dist/src/typeorm.d.ts"
+      "*": [
+        "./dist/src/*",
+        "./dist/src/index.d.ts"
+      ]
     }
   },
   "keywords": [
@@ -36,11 +38,11 @@
     "./aim": {
       "import": "./dist/src/aim/index.js"
     },
-    "./database/typeorm": {
+    "./typeorm": {
       "import": "./dist/src/typeorm.js",
       "types": "./dist/src/typeorm.d.ts"
     },
-    "./database/keyvalue": {
+    "./keyvalue": {
       "import": "./dist/src/ports/database/keyvalue/index.js"
     }
   },
@@ -101,7 +103,7 @@
     "ts-node": "^10.9.1",
     "tsc-alias": "^1.8.2",
     "tsconfig-paths": "^4.1.0",
-    "typescript": "^5.2.2",
+    "typescript": "~5.3.3",
     "typescript-transform-paths": "^3.4.6"
   },
   "peerDependencies": {
