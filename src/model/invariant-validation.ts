@@ -1,6 +1,7 @@
 import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
 import { Arr, Either, NEA, Option, Record, pipe } from '@logic/fp';
 import { Errors as IOErrors, Validation as IOValidation } from 'io-ts';
+import { P, match } from 'ts-pattern';
 
 type NormalValidationErr = BaseException | NEA.NonEmptyArray<BaseException>;
 export type StructValidationErr = Record<string, NormalValidationErr>;
@@ -17,7 +18,7 @@ export type ParsingInput<T> = {
 
 export type Validation<A> = Either.Either<ValidationErr, A>;
 
-const ValiationErrTrait = {
+export const ValidationErrTrait = {
   fromIOErrors: (ioErrors: IOErrors) =>
     pipe(
       ioErrors,
@@ -28,6 +29,30 @@ const ValiationErrTrait = {
         ),
       ),
     ),
+  match:
+    <A, B, C>(
+      onSingle: (err: BaseException) => A,
+      onArray: (errs: NEA.NonEmptyArray<BaseException>) => B,
+      onErrDict: (errDict: StructValidationErr) => C,
+    ) =>
+    (validationErr: ValidationErr) =>
+      match(validationErr)
+        .with(P.when(BaseExceptionBhv.isInstance), (be) => onSingle(be))
+        .with(P.when(Array.isArray), (bes: NEA.NonEmptyArray<BaseException>) =>
+          onArray(bes),
+        )
+        .otherwise((br) => onErrDict(br)),
+  print:
+    (atomPrint: (be: BaseException) => string = BaseExceptionBhv.print) =>
+    (validationErr: ValidationErr): string =>
+      ValidationErrTrait.match(
+        atomPrint,
+        (errs) => JSON.stringify(errs.map(atomPrint)),
+        (errDict) =>
+          JSON.stringify(
+            Record.map(ValidationErrTrait.print(atomPrint))(errDict),
+          ),
+      )(validationErr),
 };
 
 export const checkCondition =
@@ -48,7 +73,7 @@ export const ValidationTrait = {
       Either.match(
         (e) =>
           ValidationTrait.left<A>(
-            ValiationErrTrait.fromIOErrors(e) as ValidationErr,
+            ValidationErrTrait.fromIOErrors(e) as ValidationErr,
           ),
         (v) => ValidationTrait.right(v),
       ),

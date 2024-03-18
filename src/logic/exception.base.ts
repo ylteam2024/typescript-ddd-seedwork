@@ -1,10 +1,12 @@
-import { toString } from 'ramda';
+import { prop, toString } from 'ramda';
 
+const TAG = 'BaseException';
 export interface BaseException {
   readonly code: string;
   readonly loc: string[];
   readonly instruction: string[];
   readonly messages: string[];
+  tag: typeof TAG;
 }
 
 const panic = (baseException: BaseException) => {
@@ -23,6 +25,13 @@ const toPanicErr = (baseException: BaseException, delimiter: string = '__') => {
   return error;
 };
 
+const print = (baseException: BaseException) =>
+  JSON.stringify({
+    code: baseException.code,
+    messages: baseException.tag,
+    loc: baseException.loc,
+  });
+
 const factory = (
   message: string | string[],
   code: string,
@@ -33,6 +42,7 @@ const factory = (
   loc,
   instruction: instruction,
   messages: Array.isArray(message) ? message : [message],
+  tag: TAG,
 });
 
 const getCode = (exception: BaseException) => exception.code;
@@ -51,4 +61,7 @@ export const BaseExceptionBhv = {
   getLoc,
   panic,
   toPanicErr,
+  isInstance: (candidate: unknown): candidate is BaseException =>
+    prop('tag', candidate) === TAG,
+  print,
 };
