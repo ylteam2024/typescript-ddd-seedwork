@@ -19,11 +19,10 @@ import * as io from 'io-ts';
 import * as IoTypes from 'io-ts-types';
 export * as rd from 'ramda';
 import { pipe, flow, identity } from 'fp-ts/lib/function';
-import { BaseException } from './exception.base';
 import { ValidationErr } from '@model/invariant-validation';
 import { TE } from './fp';
 
-type SumException = BaseException | BaseException[] | ValidationErr;
+type SumException = ValidationErr;
 export type BaseTE<
   T,
   EX extends SumException = SumException,

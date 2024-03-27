@@ -53,6 +53,8 @@ export const ValidationErrTrait = {
             Record.map(ValidationErrTrait.print(atomPrint))(errDict),
           ),
       )(validationErr),
+  sumUp: (code: string) => (err: ValidationErr) =>
+    BaseExceptionBhv.construct(ValidationErrTrait.print()(err), code),
 };
 
 export const checkCondition =

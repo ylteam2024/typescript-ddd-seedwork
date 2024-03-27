@@ -4,6 +4,7 @@ import { Either, Eq, S } from '@logic/fp';
 import { Parser } from '@model/invariant-validation';
 import { PrimitiveVOTrait } from '@model/value-object.base';
 import { Brand } from '@type_util/index';
+import { v4 as uuidv4 } from 'uuid';
 
 export type Identifier = Brand<string, 'Identifier'>;
 
@@ -19,9 +20,14 @@ export const IdEq = Eq.fromEquals((id1: Identifier, id2: Identifier) =>
   S.Eq.equals(id1, id2),
 );
 
-export const IdentifierTrait: PrimitiveVOTrait<Identifier> = {
+interface IidentifierTrait extends PrimitiveVOTrait<Identifier> {
+  uuid(): Identifier;
+}
+
+export const IdentifierTrait: IidentifierTrait = {
   parse: parseId,
   new: parseId,
+  uuid: () => uuidv4() as Identifier,
 };
 export type ObjectWithId = {
   readonly id: Identifier;

@@ -64,4 +64,6 @@ export const BaseExceptionBhv = {
   isInstance: (candidate: unknown): candidate is BaseException =>
     prop('tag', candidate) === TAG,
   print,
+  fromErr: (code: string) => (err: Error) =>
+    BaseExceptionBhv.construct(err.message, code),
 };

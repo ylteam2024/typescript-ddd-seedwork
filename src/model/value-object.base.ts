@@ -77,8 +77,8 @@ const structParsing = <ET extends ValueObject>(
 
 export interface ValueObjectTrait<
   VO extends ValueObject,
-  NewParam = any,
-  ParseParam = any,
+  NewParam = VOLiken<VO>,
+  ParseParam = VOLiken<VO>,
 > extends DomainModelTrait<VO, NewParam, ParseParam> {}
 
 export interface PrimitiveVOTrait<VO> {
