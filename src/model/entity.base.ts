@@ -75,7 +75,7 @@ const construct: EntityParserFactory<WithEntityMetaInput<unknown>> =
         }),
         Either.flatMap((metaLike) => {
           return structSummarizerParsing<Omit<EntityCommonProps, '_tag'>>({
-            id: parseId(options.autoGenId ? uuidv4() : metaLike.id),
+            id: parseId(options.autoGenId ? uuidv4() : metaLike.id || ''),
             createdAt: Either.right(metaLike.createdAt),
             updatedAt: Either.right(metaLike.updatedAt),
           });

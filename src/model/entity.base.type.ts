@@ -40,7 +40,7 @@ type RecursiveWithArray<I> = I extends Entity
         : Liken<I>;
 
 export type WithEntityMetaInput<OriginInput> = OriginInput &
-  Liken<Omit<EntityCommonProps, '_tag' | 'id'>> & { id?: unknown };
+  Liken<Omit<EntityCommonProps, '_tag' | 'id'>> & { id?: string };
 
 export type EntityInvariantParser<
   T extends Entity,

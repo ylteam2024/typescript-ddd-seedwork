@@ -8,7 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export type Identifier = Brand<string, 'Identifier'>;
 
-export const parseId: Parser<Identifier> = (v: unknown) => {
+export const parseId: Parser<Identifier, string> = (v: string) => {
   const isId = (v: unknown): v is Identifier =>
     typeof v === 'string' && v.length > 0;
   return Either.fromPredicate(isId, () =>

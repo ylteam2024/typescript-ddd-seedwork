@@ -143,8 +143,8 @@ export const structSummarizerParsing = <T>(struct: ParsingInput<T>) => {
 };
 
 export const arrayParser =
-  <T>(itemParser: Parser<T>) =>
-  (a: unknown[]) => {
+  <T, I>(itemParser: Parser<T, I>) =>
+  (a: I[]) => {
     return pipe(
       a,
       A.reduceWithIndex({}, (i, acc, cur) => ({
