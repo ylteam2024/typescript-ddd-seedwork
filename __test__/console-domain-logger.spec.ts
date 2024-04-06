@@ -1,7 +1,7 @@
 import { getConsoleDomainLogger } from 'src';
 
 describe('Test ConsoleDomainLogger', () => {
-  let consoleDomainLogger = getConsoleDomainLogger(
+  const consoleDomainLogger = getConsoleDomainLogger(
     'test ConsoleDomainLogger',
   );
   it('Test ConsoleDomainLogger', () => {

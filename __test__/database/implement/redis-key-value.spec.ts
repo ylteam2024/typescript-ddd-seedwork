@@ -20,10 +20,12 @@ describe('test redis port', () => {
   });
 
   it('test error handler', async () => {
-    let spyonErrorHandler: jest.SpyInstance;
-    spyonErrorHandler = jest.spyOn(redisKeyValueRepository, 'onError');
-    await new Promise((resolve, reject) => {
-      const errorHandler = (errorMsg: string) => {
+    const spyonErrorHandler: jest.SpyInstance = jest.spyOn(
+      redisKeyValueRepository,
+      'onError',
+    );
+    await new Promise((resolve) => {
+      const errorHandler = (/*errorMsg: string*/) => {
         resolve(null);
       };
       redisKeyValueRepository.registerErrorHandler(errorHandler);

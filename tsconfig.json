@@ -52,7 +52,7 @@
   },
   "include": [
     "src/**/*",
-    // "__test__/**/*"
+    "__test__/**/*"
   ],
   "exclude": [
     "node_modules",

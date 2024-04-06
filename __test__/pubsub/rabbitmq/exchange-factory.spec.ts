@@ -19,7 +19,7 @@ describe('Exchange Factory', function () {
 
   describe('constructor', function () {
     jest.setTimeout(10000);
-    let existExchanges = [];
+    let existExchanges: Exchange[] = [];
 
     it('constructor instance', async function () {
       const factories = [

@@ -10,7 +10,7 @@ export class MockKeyValueRepository extends AbstractKeyValueRepository {
   public set(
     key: string,
     value: string | number,
-    expired_seconds?: number,
+    /* expired_seconds?: number */
   ): Promise<void> {
     this.dict[this.keyWithPrefix(key)] = value;
     return Promise.resolve();

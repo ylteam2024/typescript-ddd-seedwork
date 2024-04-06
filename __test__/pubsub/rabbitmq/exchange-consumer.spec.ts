@@ -9,24 +9,31 @@ import {
 import { randomUUID } from 'crypto';
 import { MockEventHandlingTracker } from '../mock/event-handling-tracker.mock';
 
+type Command = {
+  aType: string;
+  aMessageId: string;
+  aTimeStamp: Date;
+  aMessage: string;
+  aDeliveryTag: number;
+  isRedelivery: boolean;
+};
+
 describe('Exchange Listener', () => {
-  let connectionSetting = null;
+  const connectionSetting: ConnectionSettings = ConnectionSettings.factory(
+    'localhost',
+    5672,
+    'dino_ai_market',
+    'dino_123456',
+    'dino_ai_market',
+  );
   const fanoutExchangeName = 'exchange_for_test_exchange_listener_fanout';
   const directExchangeName = 'exchange_for_test_exchange_listener_direct';
   const messageTypes = ['test_message_type'];
   // init an random queueName to prevent consumer of test receive any event that emitted in the pass
   const newQueueName = () => `queue_for_test_exchange_listener_${randomUUID()}`;
-  let exchanges = [];
+  let exchanges: Exchange[] = [];
 
-  beforeAll(() => {
-    connectionSetting = ConnectionSettings.factory(
-      'localhost',
-      5672,
-      'dino_ai_market',
-      'dino_123456',
-      'dino_ai_market',
-    );
-  });
+  beforeAll(() => {});
 
   class AbstractMockListener extends ExchangeListener {
     queueDurable = false;
@@ -55,16 +62,12 @@ describe('Exchange Listener', () => {
     override queueName(): string {
       return newQueueName();
     }
-    handle = jest.fn().mockResolvedValue(null);
+    handle(params: Command) {
+      console.log('params', params);
+      return Promise.resolve(null);
+    }
 
-    async filteredDispatch(params: {
-      aType: string;
-      aMessageId: string;
-      aTimeStamp: Date;
-      aMessage: string;
-      aDeliveryTag: number;
-      isRedelivery: boolean;
-    }): Promise<void> {
+    async filteredDispatch(params: Command): Promise<void> {
       console.info(
         `Handle message [type] ${params.aType} [content] ${params.aMessage}`,
       );
@@ -74,12 +77,16 @@ describe('Exchange Listener', () => {
 
   const getExchangeFromListener = async (listener: ExchangeListener) => {
     const exchange: Exchange = await new Promise((resolve, reject) => {
-      if (listener.isReadyForConsuming()) {
-        resolve(listener.getExchange());
+      if (listener.getExchange() !== undefined) {
+        if (listener.isReadyForConsuming()) {
+          resolve(listener.getExchange() as Exchange);
+        } else {
+          listener.registerOnReady(() => {
+            resolve(listener.getExchange() as Exchange);
+          });
+        }
       } else {
-        listener.registerOnReady(() => {
-          resolve(listener.getExchange());
-        });
+        reject();
       }
     });
     return exchange;
@@ -88,12 +95,12 @@ describe('Exchange Listener', () => {
   const pushMessageByExchange = (
     exchange: Exchange,
     messageId: string,
-    routingKey?: string,
+    routingKey: string,
     messageType?: string,
   ) => {
     exchange
       .getChannel()
-      .publish(
+      ?.publish?.(
         exchange.getName(),
         routingKey,
         Buffer.from('this is message', 'utf-8'),
@@ -112,7 +119,6 @@ describe('Exchange Listener', () => {
     it('Test fanout exchange listener', async () => {
       let handled = false;
       // let exchange: Exchange = null;
-      let listener: AbstractMockListener = null;
       await new Promise(async (resolve, reject) => {
         const messageId = randomUUID();
         class MockListener extends AbstractMockListener {
@@ -126,18 +132,19 @@ describe('Exchange Listener', () => {
             aMessage: string;
             aDeliveryTag: number;
             isRedelivery: boolean;
-          }): Promise<void> {
+          }) {
             if (params.aMessageId === messageId) {
               handled = true;
               resolve(params.aMessage);
             }
+            return Promise.resolve(null);
           }
           exchangeName(): string {
             return fanoutExchangeName;
           }
         }
         try {
-          listener = new MockListener();
+          const listener = new MockListener();
           listener.startListener();
 
           expect(listener.label).toBe('MockListener');
@@ -149,10 +156,10 @@ describe('Exchange Listener', () => {
 
           exchanges.push(_exchange);
           // exchange = _exchange;
-          pushMessageByExchange(_exchange, messageId);
+          pushMessageByExchange(_exchange, messageId, '');
 
           const queue = listener.getQueue();
-          expect(queue.isDurable()).toBe(true);
+          expect(queue && queue.isDurable()).toBe(true);
         } catch (error) {
           reject(error);
         }
@@ -165,7 +172,6 @@ describe('Exchange Listener', () => {
     it('constructing durable exchange listener', async () => {
       let handled = false;
       // let exchange: Exchange = null;
-      let listener: AbstractMockListener = null;
       const messageId = randomUUID();
       await new Promise(async (resolve, reject) => {
         class MockListener extends AbstractMockListener {
@@ -179,18 +185,19 @@ describe('Exchange Listener', () => {
             aMessage: string;
             aDeliveryTag: number;
             isRedelivery: boolean;
-          }): Promise<void> {
+          }) {
             handled = true;
             if (params.aMessageId === messageId) {
               resolve(params.aMessage);
             }
+            return Promise.resolve(null);
           }
           exchangeName(): string {
             return fanoutExchangeName;
           }
         }
         try {
-          listener = new MockListener();
+          const listener = new MockListener();
           listener.startListener();
           expect(listener.label).toBe('MockListener');
           expect(listener.connectionSetting).toBe(connectionSetting);
@@ -201,7 +208,7 @@ describe('Exchange Listener', () => {
 
           exchanges.push(_exchange);
           // exchange = _exchange;
-          pushMessageByExchange(_exchange, messageId);
+          pushMessageByExchange(_exchange, messageId, '');
         } catch (error) {
           reject(error);
         }
@@ -212,7 +219,6 @@ describe('Exchange Listener', () => {
   it('Test Direct Routing Exchange Listener', async () => {
     let handled = false;
     // let exchange: Exchange = null;
-    let listener: AbstractMockListener = null;
     const messageId = randomUUID();
     const routingKeys = ['mock_routing_key1', 'mock_routing_key2'];
     await new Promise(async (resolve, reject) => {
@@ -220,11 +226,12 @@ describe('Exchange Listener', () => {
         exchangeType = ExchangeType.DIRECT;
         queueRoutingKeys = routingKeys;
 
-        override async handle(): Promise<void> {
+        override async handle(params: Command) {
           handled = true;
-          if (aMessageId === messageId) {
-            resolve(aMessage);
+          if (params.aMessageId === messageId) {
+            resolve(params.aMessage);
           }
+          return Promise.resolve(null);
         }
         override exchangeName(): string {
           return directExchangeName;
@@ -234,7 +241,7 @@ describe('Exchange Listener', () => {
         }
       }
       try {
-        listener = new MockListenerTarget();
+        const listener = new MockListenerTarget();
         listener.startListener();
 
         expect(listener.label).toBe('MockListener');
@@ -257,26 +264,19 @@ describe('Exchange Listener', () => {
   it('Test Direct Routing Exchange Listener with Default Routing', async () => {
     let handled = false;
     // let exchange: Exchange = null;
-    let listener: AbstractMockListener = null;
     const messageId = randomUUID();
     const testDirectMessageType = 'test_direct_message_type';
     await new Promise(async (resolve, reject) => {
       class MockListenerTarget extends AbstractMockListener {
         exchangeType = ExchangeType.DIRECT;
 
-        override async handle(params: {
-          aType: string;
-          aMessageId: string;
-          aTimeStamp: Date;
-          aMessage: string;
-          aDeliveryTag: number;
-          isRedelivery: boolean;
-        }): Promise<void> {
+        override async handle(params: Command) {
           handled = true;
           if (params.aMessageId === messageId) {
             console.log('handle message in default routing ');
             resolve(params.aMessage);
           }
+          return Promise.resolve(null);
         }
         override exchangeName(): string {
           return directExchangeName;
@@ -286,7 +286,7 @@ describe('Exchange Listener', () => {
         }
       }
       try {
-        listener = new MockListenerTarget();
+        const listener = new MockListenerTarget();
         listener.startListener();
 
         expect(listener.label).toBe('MockListener');

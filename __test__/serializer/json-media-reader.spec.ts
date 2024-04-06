@@ -1,4 +1,3 @@
-import { BaseException } from '@logic/exception.base';
 import { JsonMediaReader } from 'src/serializer/JsonReader';
 
 describe('Test JsonMediaReader', () => {

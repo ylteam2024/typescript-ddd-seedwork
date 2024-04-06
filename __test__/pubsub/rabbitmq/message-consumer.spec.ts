@@ -9,8 +9,8 @@ import {
 import { randomUUID } from 'crypto';
 
 describe('Message Consumer', () => {
-  let queue: Queue = null;
-  let exchange: Exchange = null;
+  let queue: Queue;
+  let exchange: Exchange;
   let connectionSetting = null;
   const exchangeName = 'exchange_testing_message_listener';
   const routingKey = 'test_routing';
@@ -64,7 +64,7 @@ describe('Message Consumer', () => {
           aTimeStamp: Date,
           aMessage: Buffer,
           aDeliveryTag: number,
-          isRedelivery: boolean,
+          // isRedelivery: boolean,
         ): Promise<void> {
           console.log(
             `[TEST] handle message with [type] ${aType}, [messageID] ${aMessageId}, [timestamp] ${aTimeStamp}, [message] ${aMessage.toString()}, [delivery tag] ${aDeliveryTag}`,
@@ -80,8 +80,8 @@ describe('Message Consumer', () => {
         );
 
         exchange
-          .getChannel()
-          .publish(exchangeName, routingKey, Buffer.from('message', 'utf-8'), {
+          ?.getChannel()
+          ?.publish(exchangeName, routingKey, Buffer.from('message', 'utf-8'), {
             type: messageType,
             contentEncoding: 'utf-8',
             deliveryMode: 2, // Trasient
