@@ -16,7 +16,10 @@ export interface Entity<
 
 export type EntityCommonProps = Omit<Entity, 'props'>;
 
-export type EntityLiken<T extends Entity, OV = {}> = WithEntityMetaInput<
+export type EntityLiken<
+  T extends Entity,
+  OV = Record<string, never>,
+> = WithEntityMetaInput<
   {
     [K in keyof Omit<
       T['props'],

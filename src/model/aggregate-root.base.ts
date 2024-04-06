@@ -21,10 +21,10 @@ export interface AggregateTrait<
   ParseParams = AggregateLiken<E>,
 > extends EntityTrait<E, NewParams, ParseParams> {}
 
-export type AggregateLiken<A extends AggregateRoot, OV = {}> = EntityLiken<
-  A,
-  OV
->;
+export type AggregateLiken<
+  A extends AggregateRoot,
+  OV = Record<string, never>,
+> = EntityLiken<A, OV>;
 
 interface IAggGenericTrait extends IEntityGenericTrait {}
 
