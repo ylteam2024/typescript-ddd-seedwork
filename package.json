@@ -23,7 +23,7 @@
     "README"
   ],
   "scripts": {
-    "build": "rimraf dist && tsc --project tsconfig.json && tsc-alias -p tsconfig.json",
+    "build": "rimraf dist && tsc --project tsconfig.build.json && tsc-alias -p tsconfig.json",
     "trace-resolution": "tsc --traceResolution",
     "lint": "eslint . --ext .ts",
     "lint-fix": "eslint . --ext .ts --fix",
@@ -31,7 +31,8 @@
     "npm-publish": "yarn test && yarn lint && yarn build && yarn publish",
     "preversion": "npm run lint",
     "version": "git add -A src",
-    "postversion": "git push && git push --tags"
+    "postversion": "git push && git push --tags",
+    "typedoc": "typedoc src/index.ts --out ./docs --tsconfig ./tsconfig.build.json"
   },
   "exports": {
     ".": "./dist/src/index.js",
@@ -103,10 +104,12 @@
     "ts-node": "^10.9.1",
     "tsc-alias": "^1.8.2",
     "tsconfig-paths": "^4.1.0",
+    "typedoc": "^0.25.13",
     "typescript": "~5.3.3",
     "typescript-transform-paths": "^3.4.6"
   },
   "peerDependencies": {
     "@fp-ts/optic": "^0.20.0"
-  }
+  },
+  "packageManager": "yarn@4.1.1"
 }
