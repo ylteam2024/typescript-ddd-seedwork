@@ -40,9 +40,7 @@
       // "reflect-metadata"
     ],
     "typeRoots": [
-      "./node_modules/@types",
-      "../../node_modules/@types",
-      "./@types"
+      "../../node_modules/@types"
     ],
     "experimentalDecorators": true,
     "strictPropertyInitialization": false,
@@ -51,13 +49,12 @@
     "skipLibCheck": true
   },
   "include": [
-    "src/**/*",
+    "src",
     // "__test__/**/*"
   ],
   "exclude": [
-    "node_modules",
     "__test__/**/*.spec-cancel.ts",
-    "src/ports/pubsub/rabbitmq/**",
+    "src/ports/pubsub/rabbitmq",
     "./dist"
   ]
 }

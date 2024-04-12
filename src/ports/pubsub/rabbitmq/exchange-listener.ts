@@ -16,7 +16,6 @@ export class ExchangeListener {
   private queue?: Queue;
   private exchange?: Exchange;
   private isReady = false;
-
   connectionSetting: ConnectionSettings;
   autoAck = false;
   isRetry = false;
