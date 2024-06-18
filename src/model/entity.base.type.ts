@@ -16,19 +16,23 @@ export interface Entity<
 
 export type EntityCommonProps = Omit<Entity, 'props'>;
 
-export type EntityLiken<
-  T extends Entity,
-  OV = Record<string, never>,
-> = WithEntityMetaInput<
-  {
-    [K in keyof Omit<
-      T['props'],
-      keyof OV
-    >]: T['props'][K] extends Option.Option<infer U>
-      ? Option.Option<RecursiveWithArray<U>>
-      : RecursiveWithArray<T['props'][K]>;
-  } & OV
->;
+export type EntityLiken<T, OV = unknown> = T extends Entity<infer PROPS>
+  ? WithEntityMetaInput<
+      OV extends Record<string, any>
+        ? {
+            [K in keyof Omit<PROPS, keyof OV>]: PROPS[K] extends Option.Option<
+              infer U
+            >
+              ? Option.Option<RecursiveWithArray<U>>
+              : RecursiveWithArray<PROPS[K]>;
+          } & OV
+        : {
+            [K in keyof PROPS]: PROPS[K] extends Option.Option<infer U>
+              ? Option.Option<RecursiveWithArray<U>>
+              : RecursiveWithArray<PROPS[K]>;
+          }
+    >
+  : unknown;
 
 type RecursiveWithArray<I> = I extends Entity
   ? EntityLiken<I>
