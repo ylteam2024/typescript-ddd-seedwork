@@ -32,6 +32,10 @@ export const AggGenericTrait: IAggGenericTrait = {
 export const getAggGenericTraitForType = <E extends AggregateRoot>() =>
   getEntityGenericTraitForType<E>();
 
-export const getBaseAGTrait = <A extends AggregateRoot, I = AggregateLiken<A>>(
-  config: BaseDMTraitFactoryConfig<A, I>,
-) => getBaseDMTrait<A, I>(AggGenericTrait.factory)(config);
+export const getBaseAGTrait = <
+  A extends AggregateRoot,
+  I = AggregateLiken<A>,
+  P = I,
+>(
+  config: BaseDMTraitFactoryConfig<A, I, P>,
+) => getBaseDMTrait<A, I, P>(AggGenericTrait.factory)(config);

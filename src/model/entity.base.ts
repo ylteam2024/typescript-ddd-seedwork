@@ -410,9 +410,9 @@ export const EntityGenericTrait: IEntityGenericTrait = {
   unpack: GenericDomainModelTrait.unpack,
 };
 
-export const getBaseEntityTrait = <E extends Entity, I = EntityLiken<E>>(
-  config: BaseDMTraitFactoryConfig<E, I>,
-) => getBaseDMTrait<E, I>(EntityGenericTrait.factory)(config);
+export const getBaseEntityTrait = <E extends Entity, I = EntityLiken<E>, P = I>(
+  config: BaseDMTraitFactoryConfig<E, I, P>,
+) => getBaseDMTrait<E, I, P>(EntityGenericTrait.factory)(config);
 
 type AsReducerReturn<E extends Entity> = Either.Either<
   ValidationErr,
