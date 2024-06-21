@@ -1,7 +1,7 @@
 import { Optics, Option } from '@logic/fp';
 
 export type WithTime = {
-  readonly createdAt: Date;
+  readonly createdAt: Option.Option<Date>;
   readonly updatedAt: Option.Option<Date>;
 };
 

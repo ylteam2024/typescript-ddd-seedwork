@@ -49,7 +49,7 @@ import {
   getUpdatedAt,
   updatedAtLen,
 } from 'src/typeclasses/withtime';
-import { SimpleQuery, SimpleQueryOpt } from './domain-model.base.type';
+import { SimpleQueryOpt } from './domain-model.base.type';
 import { CommandOnModel, CommandOnModelTrait } from './entity.command-on-model';
 import { Writable } from '@type_util/index';
 import { GetProps, KeyProps } from 'src/typeclasses/has-props';
@@ -60,7 +60,10 @@ const construct: EntityParserFactory<WithEntityMetaInput<unknown>> =
   (props: WithEntityMetaInput<FirstArgumentType<typeof parser>>) => {
     const MetaLikeParser = io.type({
       id: options.autoGenId ? io.union([io.undefined, io.string]) : io.string,
-      createdAt: IoTypes.fromNullable(IoTypes.date, new Date()),
+      createdAt: IoTypes.fromNullable(
+        IoTypes.option(IoTypes.date),
+        Option.none,
+      ),
       updatedAt: IoTypes.fromNullable(
         IoTypes.option(IoTypes.date),
         Option.none,
@@ -323,7 +326,7 @@ export interface IEntityGenericTrait<
   setId: <TS extends Entity = T>(id: Identifier) => (domainState: TS) => TS;
   createdAt: <TS extends Entity = T>(
     t: TS,
-  ) => ReturnType<SimpleQuery<TS, Date>>;
+  ) => ReturnType<SimpleQueryOpt<TS, Date>>;
   updatedAt: <TS extends Entity = T>(
     t: TS,
   ) => ReturnType<SimpleQueryOpt<TS, Date>>;
