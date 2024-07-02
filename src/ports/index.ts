@@ -8,3 +8,4 @@ export { RedisKeyValueRepository } from './database/keyvalue/implement/redis/red
 export { EventHandlingTracker } from './pubsub/event-handling-tracker.base';
 export { KVEventHandlingTracker } from './pubsub/implement/kv-even-handling-tracker';
 export * from './database/keyvalue';
+export * from './json';
