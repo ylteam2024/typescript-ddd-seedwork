@@ -16,7 +16,10 @@ export type ParsingInput<T> = {
   [K in keyof T]: Validation<T[K]>;
 };
 
-export type Validation<A> = Either.Either<ValidationErr, A>;
+export type Validation<
+  A,
+  Err extends ValidationErr = ValidationErr,
+> = Either.Either<Err, A>;
 
 export const ValidationErrTrait = {
   fromIOErrors: (ioErrors: IOErrors) =>
@@ -67,8 +70,10 @@ export const checkCondition =
       ),
     );
 export const ValidationTrait = {
-  left: <A>(error: ValidationErr) => Either.left(error) as Validation<A>,
-  right: <A>(a: A) => Either.right(a) as Validation<A>,
+  left: <A, E extends ValidationErr = ValidationErr>(error: E) =>
+    Either.left(error) as Validation<A, E>,
+  right: <A, E extends ValidationErr = ValidationErr>(a: A) =>
+    Either.right(a) as Validation<A, E>,
   fromIOValidation: <A>(ioValidation: IOValidation<A>) =>
     pipe(
       ioValidation,
@@ -77,7 +82,7 @@ export const ValidationTrait = {
           ValidationTrait.left<A>(
             ValidationErrTrait.fromIOErrors(e) as ValidationErr,
           ),
-        (v) => ValidationTrait.right(v),
+        (v) => ValidationTrait.right<A, ValidationErr>(v),
       ),
     ),
   fromEither: <A>(either: Either.Either<ValidationErr, A>) =>
@@ -87,11 +92,14 @@ export const ValidationTrait = {
     either as Validation<A>,
 
   fromPredicate:
-    <T, I = T>(predicate: (v: I) => boolean, onFalse: () => BaseException) =>
+    <T, I = T, E extends ValidationErr = ValidationErr>(
+      predicate: (v: I) => boolean,
+      onFalse: () => E,
+    ) =>
     (value: I) =>
       predicate(value)
-        ? (ValidationTrait.right(value) as Validation<T>)
-        : ValidationTrait.left<T>(onFalse()),
+        ? ValidationTrait.right<T, E>(value as unknown as T)
+        : ValidationTrait.left<T, E>(onFalse()),
   checkCondition,
 };
 

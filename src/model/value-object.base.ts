@@ -53,15 +53,27 @@ const factory =
     );
   };
 
-export type VOLiken<T extends ValueObject> = T extends {
+export type VOLiken<T extends ValueObject, OV = unknown> = T extends {
   likenType: infer U;
 }
   ? U
-  : {
-      [K in keyof T['props']]: T['props'][K] extends Option.Option<infer OU>
-        ? Option.Option<RecursiveWithArray<OU>>
-        : RecursiveWithArray<T['props'][K]>;
-    };
+  : OV extends Record<string, any>
+    ? {
+        [K in keyof Omit<
+          T['props'],
+          keyof OV
+        >]: T['props'][K] extends Option.Option<infer OU>
+          ? Option.Option<RecursiveWithArray<OU>>
+          : RecursiveWithArray<T['props'][K]>;
+      } & OV
+    : {
+        [K in keyof Omit<
+          T['props'],
+          keyof OV
+        >]: T['props'][K] extends Option.Option<infer OU>
+          ? Option.Option<RecursiveWithArray<OU>>
+          : RecursiveWithArray<T['props'][K]>;
+      };
 
 type RecursiveWithArray<I> = I extends ValueObject
   ? VOLiken<I>
