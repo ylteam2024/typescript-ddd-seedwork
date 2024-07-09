@@ -5,6 +5,8 @@ import { Parser } from '..';
 export * from './Kyc';
 export * from './NoneEmptyString';
 export * from './Person';
+export * from './PositiveNumber';
+export * from './URL';
 
 export const parseString = (v: unknown) => {
   return Either.fromPredicate(
