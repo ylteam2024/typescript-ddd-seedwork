@@ -11,6 +11,7 @@ import {
   Parser,
   ParsingInput,
   Validation,
+  ValidationErr,
   ValidationTrait,
 } from './invariant-validation';
 import {
@@ -23,7 +24,7 @@ import {
 
 import { DomainModel } from './domain-model.base.type';
 import { structSummarizerParsing } from './parser';
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
 
 export interface ValueObject<
   T extends Record<string, any> = RRecord.ReadonlyRecord<string, any>,
@@ -93,9 +94,9 @@ export interface ValueObjectTrait<
   ParseParam = VOLiken<VO>,
 > extends DomainModelTrait<VO, NewParam, ParseParam> {}
 
-export interface PrimitiveVOTrait<VO> {
+export interface PrimitiveVOTrait<VO, E extends ValidationErr = BaseException> {
   parse: Parser<VO>;
-  new: (params: any) => Validation<VO>;
+  new: (params: any) => Validation<VO, E>;
 }
 
 export const VOGenericTrait = {
@@ -127,14 +128,14 @@ export const getPrimitiveVOTrait = <T>(config: {
   predicate: (v: unknown) => boolean;
   exceptionMsg?: string;
   exceptionCode?: string;
-}): PrimitiveVOTrait<T> => {
+}): PrimitiveVOTrait<T, BaseException> => {
   const parse = (v: unknown) =>
     ValidationTrait.fromPredicate(config.predicate, () =>
       BaseExceptionBhv.construct(
         config.exceptionMsg || 'invalid value',
         config.exceptionCode || 'INVALID_VALUE',
       ),
-    )(v) as Validation<T>;
+    )(v) as Validation<T, BaseException>;
 
   return {
     parse,

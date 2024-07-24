@@ -2,7 +2,7 @@ import { Brand } from '@type_util/index';
 import { PrimitiveVOTrait, ValidationTrait } from '..';
 import { P, match } from 'ts-pattern';
 import { Either, pipe } from '@logic/fp';
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
 import validator from 'validator';
 
 export type PositiveNumber = Brand<number, 'PositiveNumber'>;
@@ -33,7 +33,9 @@ export const parsePositiveNumber = (v: unknown) => {
         Either.map((v) => parseInt(v) as PositiveNumber),
       ),
     )
-    .otherwise(() => ValidationTrait.left<PositiveNumber>(error));
+    .otherwise(() =>
+      ValidationTrait.left<PositiveNumber, BaseException>(error),
+    );
 };
 
 export const PositiveNumberTrait: IPositiveNumberTrait = {

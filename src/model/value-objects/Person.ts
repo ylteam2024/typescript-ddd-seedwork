@@ -1,4 +1,4 @@
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
 import { Either } from '@logic/fp';
 import { Brand } from '@type_util/index';
 import validator from 'validator';
@@ -19,7 +19,7 @@ export const parseUsernameFromStr =
     instructions?: string[];
     minLength?: number;
     maxLength?: number;
-  }): Parser<Username> =>
+  }): Parser<Username, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is Username => {
@@ -52,7 +52,7 @@ export const parseFirstLastName =
   }: {
     excMessage?: string;
     code?: string;
-  }): Parser<FirstLastName> =>
+  }): Parser<FirstLastName, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is FirstLastName =>
@@ -76,7 +76,7 @@ export const parseEmailFromStr =
   }: {
     excMessage?: string;
     code?: string;
-  }): Parser<Email> =>
+  }): Parser<Email, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is Email => typeof v === 'string' && validator.isEmail(v),
@@ -101,7 +101,7 @@ export const parseLocalePhoneNumber =
     excMessage?: string;
     code?: string;
     locale: validator.MobilePhoneLocale;
-  }): Parser<T> =>
+  }): Parser<T, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is T =>
@@ -120,7 +120,7 @@ export const parsePhoneNumber =
   }: {
     excMessage?: string;
     code?: string;
-  }): Parser<PhoneNumber> =>
+  }): Parser<PhoneNumber, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is PhoneNumber =>

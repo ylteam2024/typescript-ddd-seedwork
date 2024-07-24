@@ -1,7 +1,8 @@
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
 import { Arr, Either, pipe } from '@logic/fp';
 import { DateFromISOString, NumberFromString } from 'io-ts-types';
 import { Parser } from '..';
+import { unknown } from 'io-ts';
 export * from './Kyc';
 export * from './NoneEmptyString';
 export * from './Person';
@@ -38,7 +39,7 @@ export const parseDate =
   }: {
     exeMessage?: string;
     code?: string;
-  }): Parser<Date> =>
+  }): Parser<Date, unknown, BaseException> =>
   (v: unknown) =>
     pipe(
       Either.fromPredicate(
@@ -55,6 +56,6 @@ export const parseDate =
     );
 
 export const parseArray =
-  <T>(parser: Parser<T>) =>
+  <T>(parser: Parser<T, unknown, BaseException>) =>
   (v: unknown[]) =>
     Arr.traverse(Either.Applicative)(parser)(v);

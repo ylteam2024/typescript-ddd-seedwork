@@ -117,7 +117,9 @@ export const mapErrorWithKey =
       Either.mapLeft((e) => ({ [key]: e }) as StructValidationErr),
     );
 
-export type Parser<A, I = any> = (value: I) => Validation<A>;
+export type Parser<A, I = any, E extends ValidationErr = ValidationErr> = (
+  value: I,
+) => Validation<A, E>;
 
 export const ParserTrait = {
   fromPredicate: <T, I = unknown>(config: {
