@@ -366,7 +366,7 @@ export interface IEntityGenericTrait<
     raw: ParsingInput<E['props']>,
   ) => Validation<E['props']>;
   getTag: (dV: Entity) => string;
-  unpack: (dV: Entity) => RRecord.ReadonlyRecord<string, any>;
+  unpack: <E extends Entity>(dV: Entity) => GetProps<E>;
 }
 
 export const getEntityGenericTraitForType = <E extends Entity>() => ({
