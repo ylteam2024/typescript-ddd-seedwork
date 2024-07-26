@@ -4,6 +4,7 @@ import {
   ParsingInput,
   StructValidationErr,
   Validation,
+  ValidationErr,
   ValidationErrByKey,
   ValidationTrait,
   ValueOfValidation,
@@ -21,8 +22,8 @@ import { ReadonlyRecord } from 'fp-ts/lib/ReadonlyRecord';
 import { ifElse } from 'ramda';
 
 export const optionizeParser =
-  <T>(parser: Parser<T>) =>
-  (optionV: Option.Option<unknown>) =>
+  <T, I, E extends ValidationErr>(parser: Parser<T, I, E>) =>
+  (optionV: Option.Option<I>) =>
     pipe(
       optionV,
       Option.map((v) => parser(v)),

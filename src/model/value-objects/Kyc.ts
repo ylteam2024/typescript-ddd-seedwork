@@ -28,11 +28,7 @@ const parseProps = (v: VOLiken<Kyc>) =>
         code: 'INVALID_VERIFIED_FLAG',
       }),
     )(v.isVerified),
-    verifiedAt: pipe(
-      optionizeParser<Date>,
-      apply(parseDate({})),
-      apply(v.verifiedAt),
-    ),
+    verifiedAt: pipe(v.verifiedAt, optionizeParser(parseDate({}))),
   });
 
 const parseKyc = (v: unknown) =>

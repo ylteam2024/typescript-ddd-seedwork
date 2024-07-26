@@ -427,6 +427,7 @@ interface AsReducer {
     reducerLogic: (
       input: FirstArgumentType<IFUNC>,
       props: GetProps<En>,
+      entity: En,
     ) => AsReducerReturn<En>,
   ): (input: FirstArgumentType<IFUNC>) => CommandOnModel<En>;
 }
@@ -436,12 +437,13 @@ export const asReducer: AsReducer =
     reducerLogic: (
       input: FirstArgumentType<IFUNC>,
       props: GetProps<En>,
+      entity: En,
     ) => AsReducerReturn<En>,
   ) =>
   (input: FirstArgumentType<IFUNC>) =>
   (entity: En) => {
     const propsLen = EntityGenericTrait.propsLen<En>();
-    const result = reducerLogic(input, Optics.get(propsLen)(entity));
+    const result = reducerLogic(input, Optics.get(propsLen)(entity), entity);
     return pipe(
       result,
       Either.match(
