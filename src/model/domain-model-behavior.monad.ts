@@ -17,7 +17,10 @@ export type BehaviorMonad<S> = {
 
 const map =
   <A extends Entity>(f: (a: A) => A) =>
-  (fa: BehaviorMonad<A>) => [f(fa.state), fa.events];
+  (fa: BehaviorMonad<A>): BehaviorMonad<A> => ({
+    state: f(fa.state),
+    events: fa.events,
+  });
 
 const of = <S>(state: S, itsEvent: DomainEvent[]) => ({
   events: itsEvent,
