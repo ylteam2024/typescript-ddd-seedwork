@@ -1,5 +1,5 @@
 import { Validation } from '@model/invariant-validation';
-import { BaseException, BaseExceptionBhv } from './exception.base';
+import { BaseException, BaseExceptionTrait } from './exception.base';
 import { Either, NEA, pipe, Option } from './fp';
 import { isArray } from 'util';
 import { apply } from 'fp-ts/lib/function';
@@ -23,7 +23,7 @@ export function constructException(
     pipe(
       Option.getOrElse<BaseException>,
       apply(() =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           aMessage,
           pipe(
             code,
@@ -127,11 +127,11 @@ export function assertLargerThanOrEqual({
 
 export const shouldBeArray =
   <A>({ code, message }: { code: string; message: string }) =>
-  (v: unknown): Validation<A[]> =>
+  (v: unknown): Validation<A[], BaseException> =>
     pipe(
       v,
       Either.fromPredicate(isArray, () =>
-        NEA.of(BaseExceptionBhv.construct(message, code)),
+        BaseExceptionTrait.construct(message, code),
       ),
       Either.map((a) => a as A[]),
     );

@@ -1,4 +1,4 @@
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import {
   getConsoleDomainLogger,
   ConsoleDomainLogger,
@@ -133,8 +133,8 @@ export class MessageConsumer {
       this.logger.info(`QOS set to: ${this._prefetchCount}`);
       this.setIsReady(true);
     } catch (error) {
-      BaseExceptionBhv.panic(
-        BaseExceptionBhv.construct('', 'MESSAGE_EQUALIZE_PREFETCH'),
+      BaseExceptionTrait.panic(
+        BaseExceptionTrait.construct('', 'MESSAGE_EQUALIZE_PREFETCH'),
       );
     }
   }
@@ -181,7 +181,7 @@ export class MessageConsumer {
     exception: BaseException,
   ) {
     this.logger.info(
-      `Exception on handle delivery ${BaseExceptionBhv.getMessage(exception)}`,
+      `Exception on handle delivery ${BaseExceptionTrait.getMessage(exception)}`,
     );
     this.nak(channel, message, isRetry);
   }
@@ -211,7 +211,7 @@ export class MessageConsumer {
         channel,
         message,
         this.isRetry(),
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           error.toString(),
           'HANDLE_DELIVERY_EXCEPTION',
         ),
@@ -239,8 +239,8 @@ export class MessageConsumer {
       this.setTag(tag.consumerTag);
       this.setIsConsuming(true);
     } catch (error) {
-      BaseExceptionBhv.panic(
-        BaseExceptionBhv.construct('', 'INITIATE_CONSUMER_FAILED'),
+      BaseExceptionTrait.panic(
+        BaseExceptionTrait.construct('', 'INITIATE_CONSUMER_FAILED'),
       );
     }
   }

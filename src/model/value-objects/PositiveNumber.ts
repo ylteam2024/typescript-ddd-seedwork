@@ -2,7 +2,7 @@ import { Brand } from '@type_util/index';
 import { PrimitiveVOTrait, ValidationTrait } from '..';
 import { P, match } from 'ts-pattern';
 import { Either, pipe } from '@logic/fp';
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import validator from 'validator';
 
 export type PositiveNumber = Brand<number, 'PositiveNumber'>;
@@ -12,7 +12,7 @@ interface IPositiveNumberTrait extends PrimitiveVOTrait<PositiveNumber> {}
 const isPositiveNumber = (v: number): v is PositiveNumber => v > 0;
 
 export const parsePositiveNumber = (v: unknown) => {
-  const error = BaseExceptionBhv.construct(
+  const error = BaseExceptionTrait.construct(
     'Must be positive number',
     'MUST_BE_POSITIVE_NUMBER',
   );

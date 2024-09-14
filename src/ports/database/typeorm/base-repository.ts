@@ -14,7 +14,7 @@ import { AggregateTypeORMEntityBase } from './base-entity';
 import { Arr, flow, pipe, TE, Option, absordTE } from '@logic/fp';
 import {
   BaseException,
-  BaseExceptionBhv,
+  BaseExceptionTrait,
   unknownErrToBaseException,
 } from '@logic/exception.base';
 import { identity } from 'ramda';
@@ -139,7 +139,7 @@ export abstract class TypeormRepositoryBase<
       TE.tryCatchK(this.repository.findOne, identity),
       TE.map(Option.fromNullable),
       TE.mapError((e) =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           (e as Error).message,
           'FIND_DATA_MODEL_BY_ID_ERROR',
         ),
@@ -157,7 +157,7 @@ export abstract class TypeormRepositoryBase<
         Option.match(
           () =>
             TE.left(
-              BaseExceptionBhv.construct(
+              BaseExceptionTrait.construct(
                 'entity not found',
                 'ENTITY_NOT_FOUND',
               ),
@@ -195,7 +195,7 @@ export abstract class TypeormRepositoryBase<
         Option.fold(
           () =>
             TE.left(
-              BaseExceptionBhv.construct(
+              BaseExceptionTrait.construct(
                 `Entity not found ${JSON.stringify(params)}`,
                 'NOT_FOUND',
               ),

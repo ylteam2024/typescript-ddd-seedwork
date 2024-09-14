@@ -1,21 +1,21 @@
 import { BaseException } from '@logic/exception.base';
-import { BaseEither, Option, pipe } from '@logic/fp';
+import { Either, Option, pipe } from '@logic/fp';
 import { DomainModel } from '@model/domain-model.base.type';
 
 export interface DataMapper<DM extends DomainModel, DataModel> {
-  toDomain(data: DataModel): BaseEither<DM, BaseException>;
+  toDomain(data: DataModel): Either.Either<BaseException, DM>;
   toData(params: {
     domainModel: DM;
     initState: Option.Option<DataModel>;
-  }): BaseEither<DataModel, BaseException>;
+  }): Either.Either<BaseException, DataModel>;
 }
 
 export interface ToDataFactoryParams<DM extends DomainModel, DataModel> {
-  initDataModel(domainModelIns: DM): BaseEither<DataModel, BaseException>;
+  initDataModel(domainModelIns: DM): Either.Either<BaseException, DataModel>;
   updateDataModel(params: {
     domainModel: DM;
     initState: DataModel;
-  }): BaseEither<DataModel, BaseException>;
+  }): Either.Either<BaseException, DataModel>;
 }
 
 export const factoryToData =

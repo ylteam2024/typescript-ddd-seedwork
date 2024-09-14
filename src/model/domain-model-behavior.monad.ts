@@ -10,32 +10,36 @@ export interface IEventDispatcher {
   multiDispatch(events: DomainEvent[]): IOEither.IOEither<BaseException, void>;
 }
 
-export type BehaviorMonad<A extends Entity> = State.State<DomainEvent[], A>;
+export type BehaviorMonad<S> = {
+  events: DomainEvent[];
+  state: S;
+};
 
 const map =
   <A extends Entity>(f: (a: A) => A) =>
-  (fa: BehaviorMonad<A>) =>
-    State.map(f)(fa);
+  (fa: BehaviorMonad<A>) => [f(fa.state), fa.events];
 
-const of = <A extends Entity>(aggregateState: A, itsEvent: DomainEvent[]) =>
-  ((commingEvents: DomainEvent[]) => [
-    aggregateState,
-    Arr.getMonoid<DomainEvent>().concat(itsEvent, commingEvents),
-  ]) as BehaviorMonad<A>;
+const of = <S>(state: S, itsEvent: DomainEvent[]) => ({
+  events: itsEvent,
+  state,
+});
 
 const chain =
   <A extends Entity>(f: (a: A) => BehaviorMonad<A>) =>
-  (ma: BehaviorMonad<A>) =>
-  (s: DomainEvent[]) => {
-    const state = ma(s);
-    return f(state[0])(state[1]);
+  (ma: BehaviorMonad<A>) => {
+    const result = f(ma.state);
+    return {
+      state: result.state,
+      events: [...result.events, ...ma.events],
+    };
   };
-
 const run =
   (eD: IEventDispatcher) =>
   <A extends Entity>(behavior: BehaviorMonad<A>, initEvents: DomainEvent[]) => {
-    const [aggregate, events] = behavior(initEvents);
-    return pipe(eD.multiDispatch(events), IOEither.as(aggregate));
+    return pipe(
+      eD.multiDispatch([...behavior.events, ...initEvents]),
+      IOEither.as(behavior.state),
+    );
   };
 
 export type AggBehavior<A extends Entity, P, HasParser extends boolean> = (

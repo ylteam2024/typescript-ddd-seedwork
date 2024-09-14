@@ -1,4 +1,4 @@
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import { Arr, Either, NEA, Option, Record, pipe } from '@logic/fp';
 import { Errors as IOErrors, Validation as IOValidation } from 'io-ts';
 import { P, match } from 'ts-pattern';
@@ -26,7 +26,7 @@ export const ValidationErrTrait = {
     pipe(
       ioErrors,
       Arr.map((error) =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           error.message || 'unknown error',
           `IO_ERROR_${error.value}`,
         ),
@@ -40,13 +40,13 @@ export const ValidationErrTrait = {
     ) =>
     (validationErr: ValidationErr) =>
       match(validationErr)
-        .with(P.when(BaseExceptionBhv.isInstance), (be) => onSingle(be))
+        .with(P.when(BaseExceptionTrait.isInstance), (be) => onSingle(be))
         .with(P.when(Array.isArray), (bes: NEA.NonEmptyArray<BaseException>) =>
           onArray(bes),
         )
         .otherwise((br) => onErrDict(br)),
   print:
-    (atomPrint: (be: BaseException) => string = BaseExceptionBhv.print) =>
+    (atomPrint: (be: BaseException) => string = BaseExceptionTrait.print) =>
     (validationErr: ValidationErr): string =>
       ValidationErrTrait.match(
         atomPrint,
@@ -57,7 +57,7 @@ export const ValidationErrTrait = {
           ),
       )(validationErr),
   sumUp: (code: string) => (err: ValidationErr) =>
-    BaseExceptionBhv.construct(ValidationErrTrait.print()(err), code),
+    BaseExceptionTrait.construct(ValidationErrTrait.print()(err), code),
 };
 
 export const checkCondition =
@@ -119,7 +119,7 @@ export const mapErrorWithKey =
 
 export type Parser<A, I = any, E extends ValidationErr = ValidationErr> = (
   value: I,
-) => Validation<A, E>;
+) => Either.Either<E, A>;
 
 export const ParserTrait = {
   fromPredicate: <T, I = unknown>(config: {
@@ -128,7 +128,7 @@ export const ParserTrait = {
     predicate: (v: I) => boolean;
   }) =>
     ValidationTrait.fromPredicate<T, I>(config.predicate, () =>
-      BaseExceptionBhv.construct(config.exceptionMsg, config.exceptionCode),
+      BaseExceptionTrait.construct(config.exceptionMsg, config.exceptionCode),
     ),
 };
 

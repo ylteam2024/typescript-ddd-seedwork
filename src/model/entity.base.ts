@@ -3,6 +3,7 @@ import {
   ParsingInput,
   Validation,
   ValidationErr,
+  ValidationErrTrait,
 } from './invariant-validation';
 import { structSummarizerParsing } from './parser';
 import { v4 as uuidv4 } from 'uuid';
@@ -11,7 +12,6 @@ import {
   Either,
   Eq,
   IoTypes,
-  NEA,
   Optics,
   Option,
   RRecord,
@@ -21,7 +21,7 @@ import {
 import { apply, pipe } from 'fp-ts/lib/function';
 import { DomainEvent } from './event';
 import { BehaviorMonadTrait } from './domain-model-behavior.monad';
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import { shouldBeArray } from '@logic/parser';
 import {
   GenericDomainModelTrait,
@@ -158,6 +158,7 @@ const setter =
           (updatedEntity: T) => BehaviorMonadTrait.of(updatedEntity, events),
         ),
       ),
+      Either.mapLeft(ValidationErrTrait.sumUp('AGG_SETTER_EXCEPTION')),
     );
   };
 
@@ -176,14 +177,19 @@ const adder =
   (entity: T) => {
     const lens = entityPropsLen<T>().at(attributeName);
     const getAttr = Optics.get(lens);
-    const validating = () => pipe(validator, apply(entity), apply(newItem));
+    const validating = () =>
+      pipe(
+        validator,
+        apply(entity),
+        apply(newItem),
+        Either.mapLeft(ValidationErrTrait.sumUp('REDUCER_ERROR')),
+      );
     const mustNotExist = (arr: A[]) =>
       Either.fromPredicate(
         (a: A) => {
           return !Arr.elem(E)(a)(arr);
         },
-        () =>
-          NEA.of(BaseExceptionBhv.construct('Item existed', 'ITEM_EXISTED')),
+        () => BaseExceptionTrait.construct('Item existed', 'ITEM_EXISTED'),
       );
     return pipe(
       entity,
@@ -205,11 +211,9 @@ const adder =
               item,
             ] as T['props'][keyof T['props']])(entity) as T,
           (e: unknown) =>
-            NEA.of(
-              BaseExceptionBhv.construct(
-                (e as Error).message,
-                'ADDER_OPTICS_CHANGE_ERROR',
-              ),
+            BaseExceptionTrait.construct(
+              (e as Error).message,
+              'ADDER_OPTICS_CHANGE_ERROR',
             ),
         ),
       ),
@@ -234,19 +238,23 @@ const remover =
   (entity: T) => {
     const lens = entityPropsLen<T>().at(attributeName);
     const getAttr = Optics.get(lens);
-    const validating = () => pipe(validator, apply(entity), apply(removedItem));
+    const validating = () =>
+      pipe(
+        validator,
+        apply(entity),
+        apply(removedItem),
+        Either.mapLeft(ValidationErrTrait.sumUp('REMOVER_VALIDATING_FAIL')),
+      );
     const mustExist =
       (arr: A[]) =>
-      (checkedItem: A): Validation<number> =>
+      (checkedItem: A): Validation<number, BaseException> =>
         pipe(
           arr,
           Arr.findIndex((a) => E.equals(a, checkedItem)),
           Either.fromOption(() =>
-            NEA.of(
-              BaseExceptionBhv.construct(
-                'Item does not existed',
-                'ITEM_NOT_EXISTED',
-              ),
+            BaseExceptionTrait.construct(
+              'Item does not existed',
+              'ITEM_NOT_EXISTED',
             ),
           ),
         );
@@ -272,11 +280,9 @@ const remover =
               entity,
             ) as T,
           (e: unknown) =>
-            NEA.of(
-              BaseExceptionBhv.construct(
-                (e as Error).message,
-                'ADDER_OPTICS_CHANGE_ERROR',
-              ),
+            BaseExceptionTrait.construct(
+              (e as Error).message,
+              'ADDER_OPTICS_CHANGE_ERROR',
             ),
         ),
       ),
@@ -418,8 +424,8 @@ export const getBaseEntityTrait = <E extends Entity, I = EntityLiken<E>, P = I>(
 ) => getBaseDMTrait<E, I, P>(EntityGenericTrait.factory)(config);
 
 type AsReducerReturn<E extends Entity> = Either.Either<
-  ValidationErr,
-  [Writable<GetProps<E>>, DomainEvent[]]
+  BaseException,
+  { props: Writable<GetProps<E>> | GetProps<E>; domainEvents: DomainEvent[] }
 >;
 
 interface AsReducer {
@@ -450,8 +456,8 @@ export const asReducer: AsReducer =
         (exception) => CommandOnModelTrait.fromException<En>(exception),
         (r) =>
           CommandOnModelTrait.fromModel2Events(
-            Optics.replace(propsLen)(RRecord.fromRecord(r[0]))(entity),
-            r[1],
+            Optics.replace(propsLen)(RRecord.fromRecord(r.props))(entity),
+            r.domainEvents,
           ),
       ),
     );

@@ -1,8 +1,7 @@
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import { Arr, Either, pipe } from '@logic/fp';
 import { DateFromISOString, NumberFromString } from 'io-ts-types';
 import { Parser } from '..';
-import { unknown } from 'io-ts';
 export * from './Kyc';
 export * from './NoneEmptyString';
 export * from './Person';
@@ -14,7 +13,7 @@ export * from './Enum';
 export const parseString = (v: unknown) => {
   return Either.fromPredicate(
     (v): v is string => typeof v === 'string',
-    () => BaseExceptionBhv.construct('Should be string', 'INVALID_STRING'),
+    () => BaseExceptionTrait.construct('Should be string', 'INVALID_STRING'),
   )(v);
 };
 
@@ -27,7 +26,7 @@ export const parseNumber = (v: unknown) => {
     ),
     Either.alt<any, number>(() => NumberFromString.decode(v)),
     Either.mapLeft(() =>
-      BaseExceptionBhv.construct('invalid number', 'INVALID_NUMBER'),
+      BaseExceptionTrait.construct('invalid number', 'INVALID_NUMBER'),
     ),
   );
 };
@@ -48,7 +47,7 @@ export const parseDate =
       )(v),
       Either.alt<any, Date>(() => DateFromISOString.decode(v)),
       Either.mapLeft(() =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           exeMessage || 'Date is not valid',
           code || 'DATE_INVALID',
         ),

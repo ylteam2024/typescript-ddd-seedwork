@@ -20,21 +20,24 @@ type DomainEventMetadata = {
   readonly userId?: string;
 };
 
-export interface DomainEvent {
+export interface DomainEvent<P = any> {
   aggregateId: Identifier;
   aggregateType: string;
   name: string;
   metadata: DomainEventMetadata;
+  payload?: P;
 }
 
-const construct = ({
+const construct = <P = any>({
   aggregateId,
   aggregateType,
   name,
+  payload,
 }: {
   aggregateId: Identifier;
   aggregateType: string;
   name: string;
+  payload?: P;
 }) =>
   ({
     aggregateId,
@@ -44,7 +47,8 @@ const construct = ({
       timestamp: new Date().getTime(),
       correlationId: randomUUID(),
     },
-  }) as DomainEvent;
+    payload,
+  }) as DomainEvent<P>;
 
 export const DomainEventTrait = {
   construct,

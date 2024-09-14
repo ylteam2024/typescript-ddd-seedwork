@@ -1,4 +1,4 @@
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseExceptionTrait } from '@logic/exception.base';
 import { Either, flow, pipe } from '@logic/fp';
 import { PrimitiveVOTrait } from '@model/value-object.base';
 import { Brand } from '@type_util/index';
@@ -24,7 +24,7 @@ export function getTrait<T>({
 }): NonEmptyStringVOTrait<T> {
   const parse = flow(
     Either.fromPredicate(isEmptyStringMaxNLength<T>(max), () =>
-      BaseExceptionBhv.construct(message, exceptionCode),
+      BaseExceptionTrait.construct(message, exceptionCode),
     ),
   );
   return {

@@ -1,4 +1,4 @@
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseExceptionTrait } from '@logic/exception.base';
 import { PathReporter } from 'io-ts/PathReporter';
 import { Arr as A, Either, io, NEA, Option, pipe, Record } from '@logic/fp';
 import { flow } from 'fp-ts/lib/function';
@@ -51,7 +51,7 @@ const decodeWithValidationErrMain = <T>(
           pipe(
             e,
             A.map(() =>
-              BaseExceptionBhv.construct(
+              BaseExceptionTrait.construct(
                 PathReporter.report(Either.left(e)),
                 exOps.code,
               ),
@@ -60,7 +60,7 @@ const decodeWithValidationErrMain = <T>(
         ),
         Option.getOrElse(() =>
           NEA.of(
-            BaseExceptionBhv.construct('', 'EMPTY_EXCEPTION_FROM_IO_DECODE'),
+            BaseExceptionTrait.construct('', 'EMPTY_EXCEPTION_FROM_IO_DECODE'),
           ),
         ),
       ),

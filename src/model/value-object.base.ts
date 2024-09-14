@@ -24,7 +24,7 @@ import {
 
 import { DomainModel } from './domain-model.base.type';
 import { structSummarizerParsing } from './parser';
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 
 export interface ValueObject<
   T extends Record<string, any> = RRecord.ReadonlyRecord<string, any>,
@@ -131,7 +131,7 @@ export const getPrimitiveVOTrait = <T>(config: {
 }): PrimitiveVOTrait<T, BaseException> => {
   const parse = (v: unknown) =>
     ValidationTrait.fromPredicate(config.predicate, () =>
-      BaseExceptionBhv.construct(
+      BaseExceptionTrait.construct(
         config.exceptionMsg || 'invalid value',
         config.exceptionCode || 'INVALID_VALUE',
       ),

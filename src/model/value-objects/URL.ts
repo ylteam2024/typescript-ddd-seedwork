@@ -1,6 +1,6 @@
 import { Brand } from '@type_util/index';
 import { ValidationTrait } from '..';
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 
 export type URL = Brand<string, 'URL'>;
 
@@ -14,6 +14,6 @@ export const parseURL = (s: string) => {
   return isUrl(s)
     ? ValidationTrait.right<URL, BaseException>(s)
     : ValidationTrait.left<URL, BaseException>(
-        BaseExceptionBhv.construct('url is malformed', 'URL_INCORRECT'),
+        BaseExceptionTrait.construct('url is malformed', 'URL_INCORRECT'),
       );
 };

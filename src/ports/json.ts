@@ -1,4 +1,4 @@
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import { Either, tryCatch } from 'fp-ts/lib/Either';
 import { UnknownRecord } from 'type-fest';
 
@@ -11,6 +11,6 @@ export const JsonUtil: JsonUtil = {
     tryCatch(
       () => JSON.parse(s),
       (e) =>
-        BaseExceptionBhv.construct((e as Error).message, 'JSON_PARSE_FAILED'),
+        BaseExceptionTrait.construct((e as Error).message, 'JSON_PARSE_FAILED'),
     ),
 };

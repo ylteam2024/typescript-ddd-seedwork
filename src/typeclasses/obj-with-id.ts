@@ -1,5 +1,5 @@
 import * as Optic from '@fp-ts/optic';
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import { Either, Eq, S } from '@logic/fp';
 import { Parser } from '@model/invariant-validation';
 import { PrimitiveVOTrait } from '@model/value-object.base';
@@ -14,7 +14,7 @@ export const parseId: Parser<Identifier, string, BaseException> = (
   const isId = (v: unknown): v is Identifier =>
     typeof v === 'string' && v.length > 0;
   return Either.fromPredicate(isId, () =>
-    BaseExceptionBhv.construct('invalid identifier', 'INVALID_IDENTIFIER'),
+    BaseExceptionTrait.construct('invalid identifier', 'INVALID_IDENTIFIER'),
   )(v);
 };
 

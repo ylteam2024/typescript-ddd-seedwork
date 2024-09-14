@@ -1,5 +1,5 @@
 import { BaseException } from '@logic/exception.base';
-import { ValidationTrait } from '..';
+import { Either } from '@logic/fp';
 
 export const parseEnumItemFromString =
   <T extends { [key: string]: string }>(enumT: T, exception: BaseException) =>
@@ -10,7 +10,7 @@ export const parseEnumItemFromString =
     const enumValues = Object.values(enumT);
 
     if (isEnumItem(raw)) {
-      return ValidationTrait.right<T[keyof T], BaseException>(raw);
+      return Either.right(raw);
     }
-    return ValidationTrait.left<T[keyof T], BaseException>(exception);
+    return Either.left(exception);
   };

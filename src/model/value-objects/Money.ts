@@ -2,7 +2,7 @@ import { ValueObject } from '../value-object.base';
 import { PositiveNumber, parsePositiveNumber } from './PositiveNumber';
 import { ValueObjectAuFn } from '../value-object.base';
 import { parseEnumItemFromString } from './Enum';
-import { BaseExceptionBhv } from '@logic/exception.base';
+import { BaseExceptionTrait } from '@logic/exception.base';
 
 export enum Currency {
   'USD' = 'USD',
@@ -28,7 +28,7 @@ export const MoneyTrait = {
         amount: parsePositiveNumber(rawInput.amount),
         currency: parseEnumItemFromString(
           Currency,
-          BaseExceptionBhv.construct(
+          BaseExceptionTrait.construct(
             'incorrect currency',
             'INCORRECT_CURRENCY',
           ),

@@ -52,9 +52,9 @@ const getMessage = (exception: BaseException) => exception.messages;
 const getLoc = (exception: BaseException) => exception.loc;
 
 export const unknownErrToBaseException = (err: unknown) =>
-  BaseExceptionBhv.construct(toString(err), '');
+  BaseExceptionTrait.construct(toString(err), '');
 
-export const BaseExceptionBhv = {
+export const BaseExceptionTrait = {
   construct: factory,
   getCode,
   getMessage,
@@ -65,5 +65,5 @@ export const BaseExceptionBhv = {
     prop('tag', candidate) === TAG,
   print,
   fromErr: (code: string) => (err: Error) =>
-    BaseExceptionBhv.construct(err.message, code),
+    BaseExceptionTrait.construct(err.message, code),
 };

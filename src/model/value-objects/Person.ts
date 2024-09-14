@@ -1,4 +1,4 @@
-import { BaseException, BaseExceptionBhv } from '@logic/exception.base';
+import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import { Either } from '@logic/fp';
 import { Brand } from '@type_util/index';
 import validator from 'validator';
@@ -19,7 +19,7 @@ export const parseUsernameFromStr =
     instructions?: string[];
     minLength?: number;
     maxLength?: number;
-  }): Parser<Username, BaseException> =>
+  }): Parser<Username, any, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is Username => {
@@ -29,7 +29,7 @@ export const parseUsernameFromStr =
         return typeof v === 'string' && regex.test(v);
       },
       () =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           excMessage || 'Username is not valid',
           code || 'USERNAME_INVALID',
           [],
@@ -52,7 +52,7 @@ export const parseFirstLastName =
   }: {
     excMessage?: string;
     code?: string;
-  }): Parser<FirstLastName, BaseException> =>
+  }): Parser<FirstLastName, any, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is FirstLastName =>
@@ -61,7 +61,7 @@ export const parseFirstLastName =
           v,
         ),
       () =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           excMessage || 'Name component is not correct',
           code || 'INVALID_FIRST_LAST_NAME',
         ),
@@ -76,12 +76,12 @@ export const parseEmailFromStr =
   }: {
     excMessage?: string;
     code?: string;
-  }): Parser<Email, BaseException> =>
+  }): Parser<Email, any, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is Email => typeof v === 'string' && validator.isEmail(v),
       () =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           excMessage || 'Email is not correct',
           code || 'INVALID_EMAIL',
         ),
@@ -101,13 +101,13 @@ export const parseLocalePhoneNumber =
     excMessage?: string;
     code?: string;
     locale: validator.MobilePhoneLocale;
-  }): Parser<T, BaseException> =>
+  }): Parser<T, any, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is T =>
         typeof v === 'string' && validator.isMobilePhone(v, [locale]),
       () =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           excMessage || 'VN phone number is not correct',
           code || 'INVALID_VN_PHONE_NUMBER',
         ),
@@ -120,13 +120,13 @@ export const parsePhoneNumber =
   }: {
     excMessage?: string;
     code?: string;
-  }): Parser<PhoneNumber, BaseException> =>
+  }): Parser<PhoneNumber, any, BaseException> =>
   (v: unknown) =>
     Either.fromPredicate(
       (v): v is PhoneNumber =>
         typeof v === 'string' && validator.isMobilePhone(v),
       () =>
-        BaseExceptionBhv.construct(
+        BaseExceptionTrait.construct(
           excMessage || 'Phone number is not correct',
           code || 'INVALID_PHONE_NUMBER',
         ),
