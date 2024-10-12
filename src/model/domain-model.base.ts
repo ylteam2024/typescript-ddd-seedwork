@@ -64,6 +64,10 @@ export type IsEqual<T extends DomainModel = DomainModel> = (
   b: T,
 ) => boolean;
 
+export type DomainParser<I, T extends DomainModel> = (
+  props: I,
+) => Validation<T>;
+
 export interface ParserFactory<
   DM extends DomainModel,
   I = unknown,
@@ -71,7 +75,7 @@ export interface ParserFactory<
 > {
   <T extends DM>(
     parser: Parser<GetProps<T>>,
-  ): (tag: string, options?: OP) => (props: I) => Validation<T>;
+  ): (tag: string, options?: OP) => DomainParser<I, DM>;
 }
 
 export interface BaseDMTraitFactoryConfig<

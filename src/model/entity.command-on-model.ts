@@ -1,4 +1,4 @@
-import { Either } from '@logic/fp';
+import { Either, pipe } from '@logic/fp';
 import { Entity } from './entity.base.type';
 import {
   BehaviorMonad,
@@ -6,6 +6,9 @@ import {
 } from './domain-model-behavior.monad';
 import { DomainEvent } from './event';
 import { BaseException } from '@logic/exception.base';
+import { GetProps } from 'src/typeclasses';
+import { GenericDomainModelTrait } from './domain-model.base';
+import { EntityGenericTrait } from './entity.base';
 
 export type CommandOnModelReturn<DM extends Entity> = Either.Either<
   BaseException,
@@ -20,6 +23,106 @@ export const fromException: <DM extends Entity>(
   err: BaseException,
 ) => CommandOnModelReturn<DM> = (err: BaseException) => Either.left(err);
 
+const map: <DM extends Entity>(
+  functor: (dm: DM) => Either.Either<BaseException, DM>,
+) => (cmdReturn: CommandOnModelReturn<DM>) => CommandOnModelReturn<DM> =
+  (functor) => (cmdReturn) =>
+    pipe(
+      cmdReturn,
+      Either.chain((bhv) =>
+        pipe(
+          functor(bhv.state),
+          Either.map((state) => BehaviorMonadTrait.of(state, [...bhv.events])),
+        ),
+      ),
+    );
+
+const chain: <DM extends Entity>(
+  functor: CommandOnModel<DM>,
+) => (cmdReturn: CommandOnModelReturn<DM>) => CommandOnModelReturn<DM> =
+  (functor) => (cmdReturn) =>
+    pipe(
+      cmdReturn,
+      Either.chain((firstBhv) =>
+        pipe(
+          functor(firstBhv.state),
+          Either.map((bhv) =>
+            BehaviorMonadTrait.of(bhv.state, [
+              ...firstBhv.events,
+              ...bhv.events,
+            ]),
+          ),
+        ),
+      ),
+    );
+
+const chainWithModelProps: <DM extends Entity>(
+  functor: (props: GetProps<DM>, dm: DM) => CommandOnModelReturn<DM>,
+) => (cmdReturn: CommandOnModelReturn<DM>) => CommandOnModelReturn<DM> =
+  (functor) => (cmdReturn) =>
+    pipe(
+      cmdReturn,
+      Either.chain((firstBhv) =>
+        pipe(
+          functor(
+            GenericDomainModelTrait.unpack(firstBhv.state),
+            firstBhv.state,
+          ),
+          Either.map((bhv) =>
+            BehaviorMonadTrait.of(bhv.state, [
+              ...firstBhv.events,
+              ...bhv.events,
+            ]),
+          ),
+        ),
+      ),
+    );
+
+const mapWithModelProps =
+  <DM extends Entity>(
+    functor: (
+      props: GetProps<DM>,
+      dm: DM,
+    ) => Either.Either<
+      BaseException,
+      { props: GetProps<DM>; events: DomainEvent[] }
+    >,
+  ) =>
+  (cmdReturn: CommandOnModelReturn<DM>): CommandOnModelReturn<DM> =>
+    pipe(
+      cmdReturn,
+      Either.chain((firstBhv) =>
+        pipe(
+          functor(
+            GenericDomainModelTrait.unpack(firstBhv.state),
+            firstBhv.state,
+          ),
+          Either.map((bhv) =>
+            BehaviorMonadTrait.of(
+              pipe(
+                firstBhv.state,
+                EntityGenericTrait.updateProps<DM>(bhv.props),
+              ),
+              [...firstBhv.events, ...bhv.events],
+            ),
+          ),
+        ),
+      ),
+    );
+
+const fold =
+  <C, B, ET extends Entity>(
+    onError: (error: BaseException) => C,
+    onSuccess: (state: ET, events: DomainEvent[]) => B,
+  ) =>
+  (comReturn: CommandOnModelReturn<ET>) =>
+    pipe(
+      comReturn,
+      Either.foldW(onError, (bh) => {
+        return onSuccess(bh.state, bh.events);
+      }),
+    );
+
 export const fromModel2Events: <DM extends Entity>(
   e: DM,
   events: DomainEvent[],
@@ -31,4 +134,9 @@ export const fromModel2Events: <DM extends Entity>(
 export const CommandOnModelTrait = {
   fromException,
   fromModel2Events,
+  chain,
+  map,
+  chainWithModelProps,
+  mapWithModelProps,
+  fold,
 };

@@ -19,19 +19,19 @@ export interface Add<A extends AggregateRoot> {
 }
 
 export interface SaveMultiple<A extends AggregateRoot> {
-  saveMultiple?(entities: A[]): TE.TaskEither<BaseException, void>;
+  saveMultiple(entities: A[]): TE.TaskEither<BaseException, void>;
 }
 
 export interface FindOne<A extends AggregateRoot, QueryParams = any> {
-  findOneOrThrow?(params: QueryParams): TE.TaskEither<BaseException, A>;
+  findOneOrThrow(params: QueryParams): TE.TaskEither<BaseException, A>;
 }
 
 export interface FindOneById<A extends AggregateRoot> {
-  findOneByIdOrThrow?(id: Identifier): TE.TaskEither<BaseException, A>;
+  findOneByIdOrThrow(id: Identifier): TE.TaskEither<BaseException, A>;
 }
 
 export interface FindMany<A extends AggregateRoot, QueryParams = any> {
-  findMany?(params: QueryParams): TE.TaskEither<BaseException, A[]>;
+  findMany(params: QueryParams): TE.TaskEither<BaseException, A[]>;
 }
 
 export interface OrderBy {
@@ -58,7 +58,7 @@ export interface DataWithPaginationMeta<T> {
 }
 
 export interface FindManyPaginated<A extends AggregateRoot, QueryParams = any> {
-  findManyPaginated?(
+  findManyPaginated(
     options: FindManyPaginatedParams<QueryParams>,
   ): TE.TaskEither<BaseException, DataWithPaginationMeta<A[]>>;
 }

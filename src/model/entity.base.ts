@@ -38,7 +38,6 @@ import {
   EntityCommonProps,
   EntityInvariantParser,
   EntityLiken,
-  EntityParserFactory,
   SimpleAdder,
   SimpleRemover,
   SimpleSeter,
@@ -54,7 +53,7 @@ import { CommandOnModel, CommandOnModelTrait } from './entity.command-on-model';
 import { Writable } from '@type_util/index';
 import { GetProps, KeyProps } from 'src/typeclasses/has-props';
 
-const construct: EntityParserFactory<WithEntityMetaInput<unknown>> =
+const construct: IEntityGenericTrait['factory'] =
   <T extends Entity>(parser: Parser<T['props']>) =>
   (tag: string, options: { autoGenId: boolean } = { autoGenId: true }) =>
   (props: WithEntityMetaInput<FirstArgumentType<typeof parser>>) => {
@@ -316,6 +315,11 @@ const getSnapshot = <T extends RRecord.ReadonlyRecord<string, any>>(
     ...state.props,
   });
 
+export const updateProps =
+  <ET extends Entity>(props: GetProps<ET>) =>
+  (et: ET) =>
+    ({ ...et, props }) as ET;
+
 export interface EntityTrait<
   E extends Entity,
   NewParams = any,
@@ -373,6 +377,7 @@ export interface IEntityGenericTrait<
   ) => Validation<E['props']>;
   getTag: (dV: Entity) => string;
   unpack: <E extends Entity>(dV: Entity) => GetProps<E>;
+  updateProps: <ET extends Entity>(props: GetProps<ET>) => (et: ET) => ET;
 }
 
 export const getEntityGenericTraitForType = <E extends Entity>() => ({
@@ -397,6 +402,7 @@ export const getEntityGenericTraitForType = <E extends Entity>() => ({
   structParsingProps: GenericDomainModelTrait.structParsingProps<E>,
   getTag: GenericDomainModelTrait.getTag,
   unpack: GenericDomainModelTrait.unpack,
+  updateProps: updateProps<E>,
 });
 
 export const EntityGenericTrait: IEntityGenericTrait = {
@@ -417,6 +423,7 @@ export const EntityGenericTrait: IEntityGenericTrait = {
   structParsingProps: GenericDomainModelTrait.structParsingProps,
   getTag: GenericDomainModelTrait.getTag,
   unpack: GenericDomainModelTrait.unpack,
+  updateProps,
 };
 
 export const getBaseEntityTrait = <E extends Entity, I = EntityLiken<E>, P = I>(

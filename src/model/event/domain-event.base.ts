@@ -21,8 +21,8 @@ type DomainEventMetadata = {
 };
 
 export interface DomainEvent<P = any> {
-  aggregateId: Identifier;
-  aggregateType: string;
+  aggregateId?: Identifier;
+  aggregateType?: string;
   name: string;
   metadata: DomainEventMetadata;
   payload?: P;
@@ -34,8 +34,8 @@ const construct = <P = any>({
   name,
   payload,
 }: {
-  aggregateId: Identifier;
-  aggregateType: string;
+  aggregateId?: Identifier;
+  aggregateType?: string;
   name: string;
   payload?: P;
 }) =>

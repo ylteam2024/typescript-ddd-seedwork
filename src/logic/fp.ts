@@ -12,6 +12,7 @@ import * as IO from 'fp-ts/IO';
 import * as State from 'fp-ts/State';
 import * as IOEither from 'fp-ts/IOEither';
 import * as Arr from 'fp-ts/Array';
+import * as ReadOnlyArr from 'fp-ts/ReadonlyArray';
 import * as NEA from 'fp-ts/NonEmptyArray';
 import * as NUM from 'fp-ts/number';
 import * as RRecord from 'fp-ts/ReadonlyRecord';
@@ -79,4 +80,5 @@ export {
   Record,
   IoTypes,
   Apply,
+  ReadOnlyArr,
 };

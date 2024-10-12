@@ -16,25 +16,27 @@ export type BehaviorMonad<S> = {
 };
 
 const map =
-  <A extends Entity>(f: (a: A) => A) =>
-  (fa: BehaviorMonad<A>): BehaviorMonad<A> => ({
-    state: f(fa.state),
-    events: fa.events,
-  });
+  <A extends Entity, B extends Entity = A>(f: (a: A) => B) =>
+  (fa: BehaviorMonad<A>): BehaviorMonad<B> =>
+    ({
+      state: f(fa.state),
+      events: fa.events,
+    }) as BehaviorMonad<B>;
 
-const of = <S>(state: S, itsEvent: DomainEvent[]) => ({
-  events: itsEvent,
-  state,
-});
+const of = <S>(state: S, itsEvent: DomainEvent[]) =>
+  ({
+    events: itsEvent,
+    state,
+  }) as BehaviorMonad<S>;
 
 const chain =
-  <A extends Entity>(f: (a: A) => BehaviorMonad<A>) =>
+  <A extends Entity, B extends Entity = A>(f: (a: A) => BehaviorMonad<B>) =>
   (ma: BehaviorMonad<A>) => {
     const result = f(ma.state);
     return {
       state: result.state,
       events: [...result.events, ...ma.events],
-    };
+    } as BehaviorMonad<B>;
   };
 const run =
   (eD: IEventDispatcher) =>

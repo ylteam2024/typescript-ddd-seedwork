@@ -47,10 +47,13 @@ const factory =
   (props: unknown) => {
     return pipe(
       parser(props),
-      Either.as({
-        _tag: tag,
-        props,
-      } as T),
+      Either.map(
+        (parsedProps) =>
+          ({
+            _tag: tag,
+            props: parsedProps,
+          }) as T,
+      ),
     );
   };
 
