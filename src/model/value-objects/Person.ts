@@ -30,7 +30,7 @@ export const parseUsernameFromStr =
       },
       () =>
         BaseExceptionTrait.construct(
-          excMessage || 'Username is not valid',
+          excMessage || `Username is not valid: ${v}`,
           code || 'USERNAME_INVALID',
           [],
           instructions || [
@@ -62,7 +62,7 @@ export const parseFirstLastName =
         ),
       () =>
         BaseExceptionTrait.construct(
-          excMessage || 'Name component is not correct',
+          excMessage || `Name component is not correct: ${v}`,
           code || 'INVALID_FIRST_LAST_NAME',
         ),
     )(v);
@@ -82,7 +82,7 @@ export const parseEmailFromStr =
       (v): v is Email => typeof v === 'string' && validator.isEmail(v),
       () =>
         BaseExceptionTrait.construct(
-          excMessage || 'Email is not correct',
+          excMessage || `Email is not correct: ${v}`,
           code || 'INVALID_EMAIL',
         ),
     )(v);
@@ -108,7 +108,7 @@ export const parseLocalePhoneNumber =
         typeof v === 'string' && validator.isMobilePhone(v, [locale]),
       () =>
         BaseExceptionTrait.construct(
-          excMessage || 'VN phone number is not correct',
+          excMessage || `VN phone number is not correct: ${v}`,
           code || 'INVALID_VN_PHONE_NUMBER',
         ),
     )(v);
@@ -127,7 +127,7 @@ export const parsePhoneNumber =
         typeof v === 'string' && validator.isMobilePhone(v),
       () =>
         BaseExceptionTrait.construct(
-          excMessage || 'Phone number is not correct',
+          excMessage || `Phone number is not correct: ${v}`,
           code || 'INVALID_PHONE_NUMBER',
         ),
     )(v);

@@ -28,7 +28,7 @@ const toPanicErr = (baseException: BaseException, delimiter: string = '__') => {
 const print = (baseException: BaseException) =>
   JSON.stringify({
     code: baseException.code,
-    messages: baseException.tag,
+    messages: baseException.messages,
     loc: baseException.loc,
   });
 
