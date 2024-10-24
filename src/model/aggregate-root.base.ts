@@ -5,7 +5,7 @@ import {
   IEntityGenericTrait,
   getEntityGenericTraitForType,
 } from './entity.base';
-import { Entity, EntityLiken } from './entity.base.type';
+import { Entity, EntityLiken, WithEntityMetaInput } from './entity.base.type';
 import { BaseDMTraitFactoryConfig, getBaseDMTrait } from './domain-model.base';
 
 export type AggregateRoot<
@@ -35,7 +35,7 @@ export const getAggGenericTraitForType = <E extends AggregateRoot>() =>
 export const getBaseAGTrait = <
   A extends AggregateRoot,
   I = AggregateLiken<A>,
-  P = I,
+  P = WithEntityMetaInput<I>,
 >(
   config: BaseDMTraitFactoryConfig<A, I, P>,
 ) => getBaseDMTrait<A, I, P>(AggGenericTrait.factory)(config);

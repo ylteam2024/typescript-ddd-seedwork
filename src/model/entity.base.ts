@@ -324,7 +324,13 @@ export interface EntityTrait<
   E extends Entity,
   NewParams = any,
   ParseParams = EntityLiken<E>,
-> extends DomainModelTrait<E, NewParams, ParseParams> {}
+> extends DomainModelTrait<
+    E,
+    NewParams,
+    ParseParams extends { id: string }
+      ? ParseParams
+      : WithEntityMetaInput<ParseParams>
+  > {}
 
 export interface IEntityGenericTrait<
   T extends Entity = Entity<RRecord.ReadonlyRecord<string, any>>,
@@ -426,7 +432,11 @@ export const EntityGenericTrait: IEntityGenericTrait = {
   updateProps,
 };
 
-export const getBaseEntityTrait = <E extends Entity, I = EntityLiken<E>, P = I>(
+export const getBaseEntityTrait = <
+  E extends Entity,
+  I = EntityLiken<E>,
+  P = WithEntityMetaInput<I>,
+>(
   config: BaseDMTraitFactoryConfig<E, I, P>,
 ) => getBaseDMTrait<E, I, P>(EntityGenericTrait.factory)(config);
 

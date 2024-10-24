@@ -1,6 +1,6 @@
 {
   "name": "yl-ddd-ts",
-  "version": "2.0.49",
+  "version": "2.0.51",
   "description": "Node typescript seedwork",
   "main": "dist/src/index.js",
   "author": "tuancaurao <tuancr.pt@gmail.com>",
