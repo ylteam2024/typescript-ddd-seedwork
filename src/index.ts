@@ -8,3 +8,4 @@ export * from './serializer';
 export * from './ports/pubsub';
 export * from './aim';
 export * from './typeclasses';
+export * as typeorm from './ports/database/typeorm';

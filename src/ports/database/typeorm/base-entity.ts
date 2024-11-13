@@ -23,11 +23,13 @@ export abstract class TypeormEntityBase {
   updatedAt: Date;
 }
 
-export abstract class AggregateTypeORMEntityBase extends TypeormEntityBase {
+export abstract class TypeormGeneratedUUIDEntityBase extends TypeormEntityBase {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+}
+
+export abstract class AggregateTypeORMEntityBase extends TypeormGeneratedUUIDEntityBase {
   constructor(props?: unknown) {
     super(props);
   }
-
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
 }

@@ -55,7 +55,7 @@ import { GetProps, KeyProps } from 'src/typeclasses/has-props';
 
 const construct: IEntityGenericTrait['factory'] =
   <T extends Entity>(parser: Parser<T['props']>) =>
-  (tag: string, options: { autoGenId: boolean } = { autoGenId: false }) =>
+  (tag: string, options: { autoGenId: boolean } = { autoGenId: true }) =>
   (props: WithEntityMetaInput<FirstArgumentType<typeof parser>>) => {
     const MetaLikeParser = io.type({
       id: options.autoGenId ? io.union([io.undefined, io.string]) : io.string,
@@ -77,7 +77,9 @@ const construct: IEntityGenericTrait['factory'] =
         }),
         Either.flatMap((metaLike) => {
           return structSummarizerParsing<Omit<EntityCommonProps, '_tag'>>({
-            id: parseId(options.autoGenId ? uuidv4() : metaLike.id || ''),
+            id: parseId(
+              options.autoGenId && !metaLike.id ? uuidv4() : metaLike.id || '',
+            ),
             createdAt: Either.right(metaLike.createdAt),
             updatedAt: Either.right(metaLike.updatedAt),
           });
