@@ -1,37 +1,23 @@
 import { BaseException } from '@logic/exception.base';
-import { Either, Option, pipe } from '@logic/fp';
+import { Either, Option, TE } from '@logic/fp';
 import { DomainModel } from '@model/domain-model.base.type';
+import { EntityManager, ObjectLiteral } from 'typeorm';
 
-export interface DataMapper<DM extends DomainModel, DataModel> {
-  toDomain(data: DataModel): Either.Either<BaseException, DM>;
+export interface IBaseMapper<DM extends DomainModel, DE extends ObjectLiteral> {
+  toDomain(data: DE): Either.Either<BaseException, DM>;
   toData(params: {
     domainModel: DM;
-    initState: Option.Option<DataModel>;
-  }): Either.Either<BaseException, DataModel>;
+    initState: Option.Option<DE>;
+  }): Either.Either<BaseException, DE>;
+  loadRelations(
+    entity: DE,
+    relations: string[],
+  ): TE.TaskEither<BaseException, DE>;
+  mapRelations(
+    relations: string[],
+    entity: DE,
+  ): TE.TaskEither<BaseException, DE>;
+  withTransaction<T>(
+    work: (manager: EntityManager) => TE.TaskEither<BaseException, T>,
+  ): TE.TaskEither<BaseException, T>;
 }
-
-export interface ToDataFactoryParams<DM extends DomainModel, DataModel> {
-  initDataModel(domainModelIns: DM): Either.Either<BaseException, DataModel>;
-  updateDataModel(params: {
-    domainModel: DM;
-    initState: DataModel;
-  }): Either.Either<BaseException, DataModel>;
-}
-
-export const factoryToData =
-  <DM extends DomainModel, DataModel>(
-    params: ToDataFactoryParams<DM, DataModel>,
-  ): DataMapper<DM, DataModel>['toData'] =>
-  (mapperParams) => {
-    return pipe(
-      mapperParams.initState,
-      Option.match(
-        () => params.initDataModel(mapperParams.domainModel),
-        (state) =>
-          params.updateDataModel({
-            domainModel: mapperParams.domainModel,
-            initState: state,
-          }),
-      ),
-    );
-  };
