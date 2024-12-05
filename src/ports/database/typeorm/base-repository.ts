@@ -1,61 +1,51 @@
-import {
-  FindOptionsWhere,
-  ObjectLiteral,
-  Repository,
-  FindOptionsOrder,
-  EntityManager,
-} from 'typeorm';
+import { Repository, FindOptionsWhere, FindOptionsOrder } from 'typeorm';
 import {
   FindManyPaginatedParams,
   RepositoryPort,
   DataWithPaginationMeta,
 } from '@ports/repository.base';
 import { Logger } from '@ports/logger.base';
-import { Arr, pipe, TE, Option } from '@logic/fp';
+import { Arr, pipe, TE, Option, Either } from '@logic/fp';
 import { BaseException, BaseExceptionTrait } from '@logic/exception.base';
 import { AggregateRoot } from '@model/aggregate-root.base';
 import { Identifier } from 'src/typeclasses/obj-with-id';
-import { IBaseMapper } from '@ports/mapper.base';
+import { AggregateTypeORMEntityBase } from './base-entity';
+import { BaseAggregateQueryParams } from './base-repository-with-mapper';
 
-export type WhereCondition<OrmEntity> =
-  | FindOptionsWhere<OrmEntity>[]
-  | FindOptionsWhere<OrmEntity>[]
-  | ObjectLiteral
-  | string;
-
-export interface BaseAggregateQueryParams {
-  id: Identifier;
-}
-
-export abstract class BaseRepository<
-  A extends AggregateRoot,
-  DE extends ObjectLiteral,
-  QueryParams = any,
-> implements RepositoryPort<A, QueryParams>
+export abstract class TypeormRepositoryBase<
+  Entity extends AggregateRoot,
+  OrmEntity extends AggregateTypeORMEntityBase,
+  QueryParams extends BaseAggregateQueryParams = BaseAggregateQueryParams,
+> implements RepositoryPort<Entity>
 {
-  protected correlationId?: string;
+  protected abstract relations: string[];
+  protected tableName = this.repository.metadata.tableName;
 
   constructor(
-    protected readonly mapper: IBaseMapper<A, DE>,
-    protected readonly repository: Repository<DE>,
+    protected readonly repository: Repository<OrmEntity>,
     protected readonly logger: Logger,
-    protected readonly defaultRelations: string[] = [],
   ) {}
 
-  // Abstract method to prepare query from params
-  protected abstract prepareQuery(params: QueryParams): FindOptionsWhere<DE>;
+  // Abstract methods for conversion
+  protected abstract toDomain(
+    ormEntity: OrmEntity,
+  ): Either.Either<BaseException, Entity>;
+  protected abstract toEntity(
+    domain: Entity,
+    initial?: Option.Option<OrmEntity>,
+  ): Either.Either<BaseException, OrmEntity>;
+  protected abstract prepareQuery(
+    params: QueryParams,
+  ): FindOptionsWhere<OrmEntity>;
 
-  save(aggregateRoot: A): TE.TaskEither<BaseException, void> {
+  save(entity: Entity): TE.TaskEither<BaseException, void> {
     return pipe(
-      this.mapper.toData({
-        domainModel: aggregateRoot,
-        initState: Option.none,
-      }),
+      this.toEntity(entity, Option.none),
       TE.fromEither,
-      TE.chain((dataEntity) =>
+      TE.chain((ormEntity) =>
         TE.tryCatch(
           async () => {
-            await this.repository.save(dataEntity);
+            await this.repository.save(ormEntity);
           },
           (error) =>
             BaseExceptionTrait.construct(
@@ -67,17 +57,14 @@ export abstract class BaseRepository<
     );
   }
 
-  add(entity: A): TE.TaskEither<BaseException, void> {
+  add(entity: Entity): TE.TaskEither<BaseException, void> {
     return pipe(
-      this.mapper.toData({
-        domainModel: entity,
-        initState: Option.none,
-      }),
+      this.toEntity(entity, Option.none),
       TE.fromEither,
-      TE.chain((dataEntity) =>
+      TE.chain((ormEntity) =>
         TE.tryCatch(
           async () => {
-            await this.repository.insert(dataEntity);
+            await this.repository.save(ormEntity);
           },
           (error) =>
             BaseExceptionTrait.construct(
@@ -89,53 +76,41 @@ export abstract class BaseRepository<
     );
   }
 
-  saveMultiple(entities: A[]): TE.TaskEither<BaseException, void> {
+  saveMultiple(entities: Entity[]): TE.TaskEither<BaseException, void> {
     if (entities.length === 0) {
       return TE.right(undefined);
     }
 
     return pipe(
-      this.mapper.withTransaction((manager) =>
-        pipe(
-          entities,
-          Arr.traverse(TE.ApplicativeSeq)((entity) =>
-            pipe(
-              this.mapper.toData({
-                domainModel: entity,
-                initState: Option.none,
-              }),
-              TE.fromEither,
-              TE.chain((dataEntity) =>
-                TE.tryCatch(
-                  async () => {
-                    await manager.save(dataEntity);
-                  },
-                  (error) =>
-                    BaseExceptionTrait.construct(
-                      'ENTITY_SAVE_FAILED',
-                      `Failed to save entity in batch: ${error}`,
-                    ),
-                ),
-              ),
+      entities,
+      Arr.traverse(TE.ApplicativeSeq)((entity) =>
+        pipe(this.toEntity(entity, Option.none), TE.fromEither),
+      ),
+      TE.chain((ormEntities) =>
+        TE.tryCatch(
+          async () => {
+            await this.repository.save(ormEntities);
+          },
+          (error) =>
+            BaseExceptionTrait.construct(
+              'ENTITY_SAVE_FAILED',
+              `Failed to save aggregate in batch: ${error}`,
             ),
-          ),
-          TE.map(() => undefined),
         ),
       ),
     );
   }
 
-  findOneOrThrow(params: QueryParams): TE.TaskEither<BaseException, A> {
+  findOne(
+    params: Partial<QueryParams> = {},
+  ): TE.TaskEither<BaseException, Option.Option<Entity>> {
     return pipe(
       TE.tryCatch(
         async () => {
           const entity = await this.repository.findOne({
-            where: this.prepareQuery(params),
-            relations: this.defaultRelations,
+            where: this.prepareQuery(params as QueryParams),
+            relations: this.relations,
           });
-          if (!entity) {
-            throw new Error('Entity not found');
-          }
           return entity;
         },
         (error) =>
@@ -144,17 +119,44 @@ export abstract class BaseRepository<
             `Failed to find entity: ${error}`,
           ),
       ),
-      TE.chain((entity) => pipe(this.mapper.toDomain(entity), TE.fromEither)),
+      TE.chain((entity) =>
+        entity
+          ? pipe(this.toDomain(entity), Either.map(Option.some), TE.fromEither)
+          : TE.right(Option.none),
+      ),
     );
   }
 
-  findOneByIdOrThrow(id: Identifier): TE.TaskEither<BaseException, A> {
+  findOneOrThrow(
+    params: Partial<QueryParams> = {},
+  ): TE.TaskEither<BaseException, Entity> {
+    return pipe(
+      this.findOne(params),
+      TE.chain((optionEntity) =>
+        pipe(
+          optionEntity,
+          Option.fold(
+            () =>
+              TE.left(
+                BaseExceptionTrait.construct(
+                  'FIND_ONE_FAILED_NOT_FOUND',
+                  `Failed to find aggregate`,
+                ),
+              ),
+            TE.right,
+          ),
+        ),
+      ),
+    );
+  }
+
+  findOneByIdOrThrow(id: Identifier): TE.TaskEither<BaseException, Entity> {
     return pipe(
       TE.tryCatch(
         async () => {
           const entity = await this.repository.findOne({
-            where: { id } as unknown as FindOptionsWhere<DE>,
-            relations: this.defaultRelations,
+            where: { id } as unknown as FindOptionsWhere<OrmEntity>,
+            relations: this.relations,
           });
           if (!entity) {
             throw new Error(`Entity with id ${id} not found`);
@@ -163,21 +165,23 @@ export abstract class BaseRepository<
         },
         (error) =>
           BaseExceptionTrait.construct(
-            'FIND_ONE_FAILED',
+            'FIND_ONE_BY_ID_FAILED',
             `Failed to find entity by id: ${error}`,
           ),
       ),
-      TE.chain((entity) => pipe(this.mapper.toDomain(entity), TE.fromEither)),
+      TE.chain((entity) => pipe(this.toDomain(entity), TE.fromEither)),
     );
   }
 
-  findMany(params: QueryParams): TE.TaskEither<BaseException, A[]> {
+  findMany(
+    params: Partial<QueryParams> = {},
+  ): TE.TaskEither<BaseException, Entity[]> {
     return pipe(
       TE.tryCatch(
         async () => {
           const entities = await this.repository.find({
-            where: this.prepareQuery(params),
-            relations: this.defaultRelations,
+            where: this.prepareQuery(params as QueryParams),
+            relations: this.relations,
           });
           return entities;
         },
@@ -191,17 +195,21 @@ export abstract class BaseRepository<
         pipe(
           entities,
           Arr.traverse(TE.ApplicativeSeq)((entity) =>
-            pipe(this.mapper.toDomain(entity), TE.fromEither),
+            pipe(this.toDomain(entity), TE.fromEither),
           ),
         ),
       ),
     );
   }
 
-  findManyPaginated(
-    options: FindManyPaginatedParams<QueryParams>,
-  ): TE.TaskEither<BaseException, DataWithPaginationMeta<A[]>> {
-    const { params, pagination, orderBy } = options;
+  findManyPaginated({
+    params = {} as any,
+    pagination,
+    orderBy,
+  }: FindManyPaginatedParams<QueryParams>): TE.TaskEither<
+    BaseException,
+    DataWithPaginationMeta<Entity[]>
+  > {
     const skip =
       pagination?.skip ??
       (pagination?.page
@@ -215,7 +223,7 @@ export abstract class BaseRepository<
         TE.tryCatch(
           async () =>
             this.repository.count({
-              where: params ? this.prepareQuery(params) : undefined,
+              where: this.prepareQuery(params as QueryParams),
             }),
           (error) =>
             BaseExceptionTrait.construct(
@@ -228,11 +236,11 @@ export abstract class BaseRepository<
         TE.tryCatch(
           async () =>
             this.repository.find({
-              where: params ? this.prepareQuery(params) : undefined,
+              where: this.prepareQuery(params as QueryParams),
               skip,
               take,
-              order: orderBy as FindOptionsOrder<DE>,
-              relations: this.defaultRelations,
+              order: orderBy as FindOptionsOrder<OrmEntity>,
+              relations: this.relations,
             }),
           (error) =>
             BaseExceptionTrait.construct(
@@ -245,7 +253,7 @@ export abstract class BaseRepository<
         pipe(
           entities,
           Arr.traverse(TE.ApplicativeSeq)((entity) =>
-            pipe(this.mapper.toDomain(entity), TE.fromEither),
+            pipe(this.toDomain(entity), TE.fromEither),
           ),
           TE.map((domainEntities) => ({
             data: domainEntities,
@@ -258,7 +266,7 @@ export abstract class BaseRepository<
     );
   }
 
-  delete(entity: A): TE.TaskEither<BaseException, void> {
+  delete(entity: Entity): TE.TaskEither<BaseException, void> {
     return TE.tryCatch(
       async () => {
         await this.repository.delete(entity.id);
@@ -267,41 +275,6 @@ export abstract class BaseRepository<
         BaseExceptionTrait.construct(
           'DELETE_ENTITY_FAILED',
           `Failed to delete entity: ${error}`,
-        ),
-    );
-  }
-
-  setCorrelationId(correlationId: string): this {
-    this.correlationId = correlationId;
-    // this.logger.setCorrelationId(correlationId);
-    return this;
-  }
-
-  protected withTransaction<T>(
-    work: (manager: EntityManager) => Promise<T>,
-  ): TE.TaskEither<BaseException, T> {
-    return TE.tryCatch(
-      async () => {
-        const queryRunner =
-          this.repository.manager.connection.createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-          const result = await work(queryRunner.manager);
-          await queryRunner.commitTransaction();
-          return result;
-        } catch (error) {
-          await queryRunner.rollbackTransaction();
-          throw error;
-        } finally {
-          await queryRunner.release();
-        }
-      },
-      (error) =>
-        BaseExceptionTrait.construct(
-          'TRANSACTION_FAILED',
-          `Transaction failed: ${error}`,
         ),
     );
   }
