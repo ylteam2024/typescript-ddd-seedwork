@@ -22,8 +22,8 @@ export abstract class TypeormRepositoryBase<
   protected tableName = this.repository.metadata.tableName;
 
   constructor(
-    protected readonly repository: Repository<OrmEntity>,
-    protected readonly logger: Logger,
+    private readonly repository: Repository<OrmEntity>,
+    private readonly logger: Logger,
   ) {}
 
   // Abstract methods for conversion
@@ -32,8 +32,8 @@ export abstract class TypeormRepositoryBase<
   ): Either.Either<BaseException, Entity>;
   protected abstract toEntity(
     domain: Entity,
-    initial?: Option.Option<OrmEntity>,
-  ): Either.Either<BaseException, OrmEntity>;
+    initial: Option.Option<OrmEntity>,
+  ): TE.TaskEither<BaseException, OrmEntity>;
   protected abstract prepareQuery(
     params: QueryParams,
   ): FindOptionsWhere<OrmEntity>;
@@ -41,7 +41,6 @@ export abstract class TypeormRepositoryBase<
   save(entity: Entity): TE.TaskEither<BaseException, void> {
     return pipe(
       this.toEntity(entity, Option.none),
-      TE.fromEither,
       TE.chain((ormEntity) =>
         TE.tryCatch(
           async () => {
@@ -60,7 +59,6 @@ export abstract class TypeormRepositoryBase<
   add(entity: Entity): TE.TaskEither<BaseException, void> {
     return pipe(
       this.toEntity(entity, Option.none),
-      TE.fromEither,
       TE.chain((ormEntity) =>
         TE.tryCatch(
           async () => {
@@ -84,7 +82,7 @@ export abstract class TypeormRepositoryBase<
     return pipe(
       entities,
       Arr.traverse(TE.ApplicativeSeq)((entity) =>
-        pipe(this.toEntity(entity, Option.none), TE.fromEither),
+        pipe(this.toEntity(entity, Option.none)),
       ),
       TE.chain((ormEntities) =>
         TE.tryCatch(
