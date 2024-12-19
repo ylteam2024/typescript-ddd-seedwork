@@ -19,12 +19,14 @@ export abstract class TypeormRepositoryBase<
 > implements RepositoryPort<Entity>
 {
   protected abstract relations: string[];
-  protected tableName = this.repository.metadata.tableName;
+  protected tableName: string;
 
   constructor(
-    private readonly repository: Repository<OrmEntity>,
-    private readonly logger: Logger,
-  ) {}
+    protected readonly repository: Repository<OrmEntity>,
+    protected readonly logger: Logger,
+  ) {
+    this.tableName = repository.metadata.tableName;
+  }
 
   // Abstract methods for conversion
   protected abstract toDomain(
